@@ -1,0 +1,64 @@
+<mujoco model="so101_crocodile">
+  <option integrator="implicitfast" timestep="0.004761904761904762" cone="elliptic" iterations="10" ls_iterations="20" impratio="10"/>
+  <statistic center=".2 0 .1" extent=".6"/>
+  <visual><headlight diffuse=".34 .34 .34" ambient=".20 .20 .20" specular=".05 .05 .05"/></visual>
+  <asset>
+    <texture name="sky" type="skybox" builtin="gradient" rgb1=".8 .82 .83" rgb2=".45 .46 .47" width="256" height="1536"/>
+    <material name="skin" rgba=".13 .50 .20 1" specular=".15" shininess=".10"/>
+    <material name="ridge" rgba=".08 .32 .12 1" specular=".09"/>
+    <material name="belly" rgba=".55 .73 .36 1"/>
+    <mesh name="tail_base_mesh" vertex="-.024 -.011 -.009  -.024 .011 -.009  -.024 -.010 .006  -.024 .010 .006  -.043 -.002 -.009  -.043 .010 -.009  -.043 -.002 -.001  -.043 .010 -.001"/>
+    <mesh name="tail_tip_mesh" vertex="-.043 -.002 -.009  -.043 .010 -.009  -.043 -.002 -.001  -.043 .010 -.001  -.063 .018 -.010  -.063 .017 -.008"/>
+    <mesh name="scute" vertex="-.004 -.002 0  .004 -.002 0  .004 .002 0  -.004 .002 0  -.001 0 .0045"/>
+  </asset>
+  <default>
+    <default class="rubber"><geom material="skin" density="300" condim="4" friction="1.0 .025 .001" solref=".01 1"/></default>
+    <default class="outline"><geom type="box" rgba=".10 .18 .56 1" contype="0" conaffinity="0" group="1"/></default>
+  </default>
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
+    <light pos=".3 -.4 .8" dir="-.3 .5 -1" diffuse=".25 .25 .25" castshadow="true"/>
+    <geom name="table" type="box" size=".40 .40 .015" pos=".20 0 -.015" rgba=".80 .72 .60 1"/>
+    <geom name="floor" type="plane" size="1.2 1.2 .05" pos="0 0 -.75" rgba=".38 .37 .36 1"/>
+    <site name="so101_mount" pos="0 0 0"/>
+    <body name="target" pos=".19 .095 0">
+      <!-- Paint lies on the tabletop. Inner clear extent is 150 x 78 mm. -->
+      <geom name="end_a" class="outline" pos="-.077 0 .00013" size=".002 .043 .00012"/>
+      <geom name="end_b" class="outline" pos=".077 0 .00013" size=".002 .043 .00012"/>
+      <geom name="side_a" class="outline" pos="0 -.041 .00013" size=".075 .002 .00012"/>
+      <geom name="side_b" class="outline" pos="0 .041 .00013" size=".075 .002 .00012"/>
+    </body>
+    <body name="crocodile" pos=".199 -.060 .014" childclass="rubber">
+      <freejoint/>
+      <geom name="torso" type="ellipsoid" size=".032 .0137 .0134"/>
+      <geom name="flanks" type="box" size=".014 .0125 .0117"/>
+      <geom name="haunch" type="ellipsoid" pos="-.019 0 -.003" size=".019 .012 .009"/>
+      <geom name="tail_base" type="mesh" mesh="tail_base_mesh"/>
+      <geom name="tail_tip" type="mesh" mesh="tail_tip_mesh"/>
+      <geom name="skull" type="ellipsoid" pos=".026 0 .0015" size=".016 .012 .0115"/>
+      <geom name="lower_jaw" type="ellipsoid" pos=".043 0 -.004" size=".019 .0085 .0042" material="belly"/>
+      <geom name="snout" type="ellipsoid" pos=".044 0 .0009" size=".019 .0088 .0056"/>
+      <geom name="eye_l" type="sphere" pos=".031 .007 .010" size=".0032" rgba=".86 .82 .38 1"/>
+      <geom name="eye_r" type="sphere" pos=".031 -.007 .010" size=".0032" rgba=".86 .82 .38 1"/>
+      <geom name="pupil_l" type="sphere" pos=".032 .0079 .0121" size=".0015" rgba=".04 .06 .03 1"/>
+      <geom name="pupil_r" type="sphere" pos=".032 -.0079 .0121" size=".0015" rgba=".04 .06 .03 1"/>
+      <geom name="nostril_l" type="ellipsoid" pos=".055 .003 .0048" size=".0018 .0011 .001" material="ridge"/>
+      <geom name="nostril_r" type="ellipsoid" pos=".055 -.003 .0048" size=".0018 .0011 .001" material="ridge"/>
+      <geom name="fore_l" type="capsule" fromto=".016 .008 -.003 .020 .021 -.009" size=".0045"/>
+      <geom name="fore_r" type="capsule" fromto=".016 -.008 -.003 .020 -.021 -.009" size=".0045"/>
+      <geom name="hind_l" type="capsule" fromto="-.020 .007 -.004 -.025 .020 -.009" size=".0045"/>
+      <geom name="hind_r" type="capsule" fromto="-.020 -.007 -.004 -.025 -.020 -.009" size=".0045"/>
+      <geom name="foot_fl" type="ellipsoid" pos=".023 .022 -.010" size=".007 .0046 .0034" material="ridge"/>
+      <geom name="foot_fr" type="ellipsoid" pos=".023 -.022 -.010" size=".007 .0046 .0034" material="ridge"/>
+      <geom name="foot_hl" type="ellipsoid" pos="-.022 .022 -.010" size=".007 .0046 .0034" material="ridge"/>
+      <geom name="foot_hr" type="ellipsoid" pos="-.022 -.022 -.010" size=".007 .0046 .0034" material="ridge"/>
+      <geom name="scute_1" type="mesh" mesh="scute" pos="-.029 0 .004" material="ridge"/>
+      <geom name="scute_2" type="mesh" mesh="scute" pos="-.017 0 .010" material="ridge"/>
+      <geom name="scute_3" type="mesh" mesh="scute" pos="-.005 0 .013" material="ridge"/>
+      <geom name="scute_4" type="mesh" mesh="scute" pos=".007 0 .012" material="ridge"/>
+      <geom name="scute_5" type="mesh" mesh="scute" pos=".019 0 .010" material="ridge"/>
+    </body>
+    <camera name="front" pos=".5 0 .2" xyaxes="0 1 0 -.493 0 .87" fovy="60"/>
+    <camera name="top" pos=".2 0 .48" xyaxes="0 -1 0 1 0 0" fovy="60"/>
+  </worldbody>
+</mujoco>

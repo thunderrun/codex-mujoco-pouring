@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper has retracted and the housing indicator is green in the wrist view.",
+  "action": "finish",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

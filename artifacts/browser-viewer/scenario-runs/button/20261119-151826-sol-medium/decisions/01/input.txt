@@ -1,0 +1,10 @@
+Press the red button with the SO-ARM101 gripper. It flashes on a successful press
+and the small indicator on the housing stays green afterwards. Use the overhead
+image (640 pixels wide by 480 tall) to select the center of the red cap. Pixels
+start at the upper left. press(u,v) closes the jaws, approaches that location,
+presses down, and retracts. park moves clear of the scene. Review the cameras and
+submit finish when ready. Set unused coordinates to zero.
+Use the public camera images to locate objects. The overhead image has a 20-pixel reference grid; x increases to the right, y increases down the image. For commands with no angle, return 0 for angle. Give one action and one concise observable reason. Inspect the scene after motion. When your task appears complete, submit finish.
+Decision 1 of 10. Public encoders: {"joint_positions": [1.1271269440046986e-12, -1.047051668245988, 1.0476603181318056, 0.6109739610522511, 5.508881834086212e-06], "joint_velocities": [-3.860612737201439e-11, -3.246799239632401e-09, -5.517905980888006e-11, 3.189709247432562e-11, -2.6398696800584978e-12], "gripper_angle_rad": 0.3999965804274851, "sim_time": 0.4}.
+Previous actions and feedback: [].
+The attached RGB images are, in order: overhead, front, left, wrist. If you give a progress update, use a brief public camera observation. Return your one final camera observation and requested action as the specified JSON. Use only the public information and images in this message. Do not use tools.

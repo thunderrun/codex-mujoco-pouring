@@ -85,11 +85,10 @@ def wrap(draw, text, font, width):
     return lines
 
 
-def camera_mosaic(folder, title):
+def camera_mosaic(folder, title, note="Motion replay · thinking pauses shortened"):
     canvas = Image.new("RGB", (WIDTH, HEIGHT), "#10221c")
     draw = ImageDraw.Draw(canvas)
     draw.text((17, 10), title, font=TITLE, fill="#f4f8f5")
-    note = "Motion replay · thinking pauses shortened"
     draw.text((WIDTH-16, 18), note, font=SMALL, fill="#c2d2c8", anchor="ra")
     for i, name in enumerate(CAMERAS):
         x, y = (i % 2) * 640, HEADER + (i // 2) * 480
@@ -131,6 +130,30 @@ def verify(movie, num_frames):
                     "-f", "null", "-"], check=True, stdout=subprocess.DEVNULL)
 
 
+def encode_movie(movie, frames):
+    """Atomically publish a decoded and frame-count-verified H.264 movie."""
+    num_frames = 0
+    with tempfile.TemporaryDirectory(dir=movie.parent, prefix=".encode-") as temp:
+        draft = Path(temp) / "movie.mp4"
+        cmd = [binary("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error", "-f", "image2pipe",
+               "-framerate", str(FPS), "-vcodec", "mjpeg", "-i", "pipe:0", "-an", "-c:v", "libx264",
+               "-threads", "3", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p",
+               "-movflags", "+faststart", str(draft)]
+        with subprocess.Popen(cmd, stdin=subprocess.PIPE) as encoder:
+            try:
+                for data, count in frames:
+                    for _ in range(count):
+                        encoder.stdin.write(data)
+                    num_frames += count
+            finally:
+                encoder.stdin.close()
+            if encoder.wait():
+                raise RuntimeError("FFmpeg could not encode the camera replay.")
+        verify(draft, num_frames)
+        os.replace(draft, movie)
+    return num_frames
+
+
 def export(root, *, partial=False, destination=None):
     root = Path(root).resolve()
     state = public_status(root)
@@ -151,39 +174,24 @@ def export(root, *, partial=False, destination=None):
         title += f" · {effort.capitalize()} reasoning"
     captures, stamps = capture_track(root, state["seq"])
     cues = decision_cues(root, captures, stamps)
-    card = ("Camera observation", "Codex receives the front, overhead, left and wrist views.")
-    num_frames = 0
-    with tempfile.TemporaryDirectory(dir=movie.parent, prefix=".encode-") as temp:
-        draft = Path(temp) / "movie.mp4"
-        cmd = [binary("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error", "-f", "image2pipe",
-               "-framerate", str(FPS), "-vcodec", "mjpeg", "-i", "pipe:0", "-an", "-c:v", "libx264",
-               "-threads", "3", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p",
-               "-movflags", "+faststart", str(draft)]
-        with subprocess.Popen(cmd, stdin=subprocess.PIPE) as encoder:
-            def write(data, count):
-                nonlocal num_frames
-                for _ in range(count):
-                    encoder.stdin.write(data)
-                num_frames += count
 
-            for idx, folder in enumerate(captures):
-                mosaic = camera_mosaic(folder, title)
-                for card in cues[idx]:
-                    # Leave a short pause at each decision so the actual model
-                    # observation can be read even if the camera never moved.
-                    write(encoded_card(mosaic, *card), round(FPS * min(4.0, max(1.6, len(card[1])/48))))
-                # Native cameras capture at ~5 Hz; preserve motion and compress
-                # stationary wall time spent waiting for model replies.
-                next_gap = stamps[idx+1] - stamps[idx] if idx+1 < len(stamps) else .2
-                count = max(1, round(FPS * min(.30, next_gap)))
-                write(encoded_card(mosaic, *card), count)
-            result = state.get("result") or ("Episode still running." if partial else state["caption"])
-            write(encoded_card(mosaic, "Run result" if not partial else "Preview", result), FPS*4)
-            encoder.stdin.close()
-            if encoder.wait():
-                raise RuntimeError("FFmpeg could not encode the camera replay.")
-        verify(draft, num_frames)
-        os.replace(draft, movie)
+    def frames():
+        card = ("Camera observation", "Codex receives the front, overhead, left and wrist views.")
+        for idx, folder in enumerate(captures):
+            mosaic = camera_mosaic(folder, title)
+            for card in cues[idx]:
+                # Leave a short pause at each decision so the actual model
+                # observation can be read even if the camera never moved.
+                yield encoded_card(mosaic, *card), round(FPS * min(4.0, max(1.6, len(card[1])/48)))
+            # Native cameras capture at ~5 Hz; preserve motion and compress
+            # stationary wall time spent waiting for model replies.
+            next_gap = stamps[idx+1] - stamps[idx] if idx+1 < len(stamps) else .2
+            count = max(1, round(FPS * min(.30, next_gap)))
+            yield encoded_card(mosaic, *card), count
+        result = state.get("result") or ("Episode still running." if partial else state["caption"])
+        yield encoded_card(mosaic, "Run result" if not partial else "Preview", result), FPS*4
+
+    num_frames = encode_movie(movie, frames())
     return {"path": str(movie), "camera_sets": len(captures), "decisions": sum(map(len, cues.values())),
             "frames": num_frames, "seconds": num_frames/FPS, "bytes": movie.stat().st_size}
 

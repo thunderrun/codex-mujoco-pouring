@@ -20,6 +20,7 @@ import codex_feed
 import run_history
 import run_launcher
 from run_instructions import instructions
+from scenario_web import scenario_resource, scenario_movie
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -137,11 +138,18 @@ class Viewer(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
         view = params.get("view", ["codex"])[0]
-        if parsed.path == "/":
+        if parsed.path == "/" and "view" not in params:
+            self.reply((HERE / "overview.html").read_bytes(), "text/html; charset=utf-8")
+        elif parsed.path in ("/", "/pouring"):
             if view == "gateway" and gateway is None:
-                self.reply(b"", "text/plain", 302, [("Location", "/")])
+                self.reply(b"", "text/plain", 302, [("Location", "/pouring")])
                 return
             self.reply((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        elif parsed.path.startswith("/scenarios/") and parsed.path.endswith("/replay.mp4"):
+            self.serve_movie(scenario_movie(HERE, parsed.path))
+        elif parsed.path in ("/scenarios", "/api/scenarios") or parsed.path.startswith("/scenarios/"):
+            body, kind, status = scenario_resource(HERE, parsed.path)
+            self.reply(body, kind, status)
         elif parsed.path == "/api/options":
             options = run_launcher.options()
             options["capabilities"] = {"gateway": gateway is not None, "button_recording": RECORDING.is_file()}
@@ -204,31 +212,34 @@ class Viewer(BaseHTTPRequestHandler):
                 recording = codex_feed.RUNS / match.group(1) / "replay.mp4"
             else:
                 recording = RECORDING if parsed.path == "/button.mp4" else codex_feed.CURRENT / "replay.mp4"
-            if not recording.is_file():
-                self.send_error(404)
-                return
-            length = recording.stat().st_size
-            start, end, status = 0, length - 1, 200
-            headers = [("Accept-Ranges", "bytes")]
-            byte_range = self.headers.get("Range")
-            if byte_range:
-                match = re.fullmatch(r"bytes=(\d+)-(\d*)", byte_range)
-                if not match:
-                    self.send_error(416)
-                    return
-                start = int(match.group(1))
-                if match.group(2):
-                    end = min(end, int(match.group(2)))
-                if start > end:
-                    self.send_error(416)
-                    return
-                headers.append(("Content-Range", f"bytes {start}-{end}/{length}"))
-                status = 206
-            with recording.open("rb") as stream:
-                stream.seek(start)
-                self.reply(stream.read(end-start+1), "video/mp4", status, headers)
+            self.serve_movie(recording)
         else:
             self.send_error(404)
+
+    def serve_movie(self, recording):
+        if recording is None or not recording.is_file():
+            self.send_error(404)
+            return
+        length = recording.stat().st_size
+        start, end, status = 0, length - 1, 200
+        headers = [("Accept-Ranges", "bytes")]
+        byte_range = self.headers.get("Range")
+        if byte_range:
+            match = re.fullmatch(r"bytes=(\d+)-(\d*)", byte_range)
+            if not match:
+                self.send_error(416)
+                return
+            start = int(match.group(1))
+            if match.group(2):
+                end = min(end, int(match.group(2)))
+            if start > end:
+                self.send_error(416)
+                return
+            headers.append(("Content-Range", f"bytes {start}-{end}/{length}"))
+            status = 206
+        with recording.open("rb") as stream:
+            stream.seek(start)
+            self.reply(stream.read(end-start+1), "video/mp4", status, headers)
 
     def stream_events(self, params):
         try:

@@ -1,0 +1,7 @@
+{
+  "observation": "The crocodile is resting on the table below the open gripper, with its snout, feet, and tail tip inside the blue outline.",
+  "action": "finish",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

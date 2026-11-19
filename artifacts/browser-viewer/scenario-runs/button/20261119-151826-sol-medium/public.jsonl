@@ -1,0 +1,10 @@
+{"id": 1, "time": "2026-11-19T15:18:26.389+08:00", "decision": 0, "frame_seq": 0, "sim_time": null, "kind": "system", "text": "Starting Press the red button with gpt-6.2-sol, medium reasoning and four RGB cameras."}
+{"id": 2, "time": "2026-11-19T15:18:29.909+08:00", "decision": 1, "frame_seq": 1, "sim_time": 0.4, "kind": "system", "text": "Codex is inspecting the camera images."}
+{"id": 3, "time": "2026-11-19T15:18:37.119+08:00", "decision": 1, "frame_seq": 1, "sim_time": 0.4, "kind": "codex", "text": "The red cap is centered at approximately (352, 256) in the overhead image."}
+{"id": 4, "time": "2026-11-19T15:18:40.130+08:00", "decision": 1, "frame_seq": 1, "sim_time": 0.4, "kind": "command", "text": "press (352, 256, 0°)"}
+{"id": 5, "time": "2026-11-19T15:18:42.157+08:00", "decision": 1, "frame_seq": 13, "sim_time": 4.2, "kind": "result", "text": "Press stroke and retraction completed at the selected image point."}
+{"id": 6, "time": "2026-11-19T15:18:43.960+08:00", "decision": 2, "frame_seq": 14, "sim_time": 4.33, "kind": "system", "text": "Codex is inspecting the camera images."}
+{"id": 7, "time": "2026-11-19T15:18:50.623+08:00", "decision": 2, "frame_seq": 14, "sim_time": 4.33, "kind": "codex", "text": "The gripper has retracted and the housing indicator is green in the wrist view."}
+{"id": 8, "time": "2026-11-19T15:18:53.950+08:00", "decision": 2, "frame_seq": 14, "sim_time": 4.33, "kind": "command", "text": "finish"}
+{"id": 9, "time": "2026-11-19T15:18:54.429+08:00", "decision": 2, "frame_seq": 15, "sim_time": 4.33, "kind": "error", "text": "RuntimeError: The independent replay did not match the recorded episode."}
+{"id": 10, "time": "2026-11-19T15:19:40.191+08:00", "decision": 2, "frame_seq": 15, "sim_time": 4.33, "kind": "result", "text": "Pass · Button flashed."}

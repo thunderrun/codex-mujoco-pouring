@@ -1,0 +1,1 @@
+{"task": "button", "arm": "so101", "seed": 101, "run_id": "20261119-151826-sol-medium", "started_at": "2026-11-19T15:18:26.389+08:00", "decision_limit": 10, "model": "gpt-6.2-sol", "speed": "standard", "speed_label": "Standard", "service_tier": "default", "reasoning_effort": "medium"}

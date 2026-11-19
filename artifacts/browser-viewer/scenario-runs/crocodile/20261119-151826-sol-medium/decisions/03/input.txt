@@ -1,0 +1,16 @@
+Place the entire green toy crocodile inside the blue rectangular outline on the
+table. Its snout, feet, and tail tip all need to fit. Leave the toy resting and released.
+Use the current overhead RGB to choose (u,v) in its 640 × 480 image; right increases u and
+down increases v. Pick(u,v,angle) approaches the torso, closes the jaws and lifts. Choose
+a pinch point on the torso clear of the legs. The jaw-closing axis is measured clockwise
+from image right in degrees (0 horizontal, 90 vertical). The jaws should close across the
+torso. Place(u,v,angle) brings the held pinch point over that table pixel, lowers the toy,
+opens, and withdraws. The angle is an absolute jaw-closing axis in the overhead image.
+Use the pick angle to keep the orientation, or rotate the toy to fit. Account for the
+snout and tail relative to the pinch point. Park opens the gripper and moves it clear
+for inspection. Robot motion acknowledgements describe only the arm. Inspect the
+images to verify grasp and placement. Retry after a miss if needed. Finish submits.
+Use the public camera images to locate objects. The overhead image has a 20-pixel reference grid; x increases to the right, y increases down the image. For commands with no angle, return 0 for angle. Give one action and one concise observable reason. Inspect the scene after motion. When your task appears complete, submit finish.
+Decision 3 of 10. Public encoders: {"joint_positions_rad": [-0.5483852548686557, -0.1608184335786872, 0.22483747156077247, 1.507071430451782, 1.2107645075806057], "gripper_angle_rad": 0.5166180129627556, "sim_time": 9.866667}.
+Previous actions and feedback: [{"observation": "The middle of the torso is clear between the front and rear legs, with room for the jaws to close across it.", "action": "pick", "u": 368, "v": 242, "angle": -8, "feedback": "Pick trajectory completed. Inspect the camera views."}, {"observation": "The side view shows the crocodile suspended in the jaws. Keeping its orientation and placing the pinch near the rectangle’s center leaves room for the snout, feet, and tail.", "action": "place", "u": 231, "v": 251, "angle": -8, "feedback": "Place trajectory completed. Inspect the camera views."}].
+The attached RGB images are, in order: overhead, front, left, wrist, initial overhead. If you give a progress update, use a brief public camera observation. Return your one final camera observation and requested action as the specified JSON. Use only the public information and images in this message. Do not use tools.

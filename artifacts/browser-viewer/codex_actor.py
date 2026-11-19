@@ -65,12 +65,12 @@ def public_error(value):
     return "The Codex request failed."
 
 
-def parse_decision(text):
+def parse_decision(text, actions=ACTIONS):
     try:
         d = json.loads(text)
         if (isinstance(d, dict) and set(d) == set(SCHEMA["required"])
                 and isinstance(d["observation"], str) and d["observation"].strip()
-                and d["action"] in ACTIONS and type(d["u"]) is int and type(d["v"]) is int
+                and d["action"] in actions and type(d["u"]) is int and type(d["v"]) is int
                 and type(d["angle"]) in (int, float) and math.isfinite(d["angle"])):
             return {**d, "observation": public_text(d["observation"])}
     except (ValueError, TypeError):
@@ -79,12 +79,14 @@ def parse_decision(text):
 
 
 def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=MODEL,
-           speed="standard", reasoning_effort=DEFAULT_REASONING_EFFORT):
+           speed="standard", reasoning_effort=DEFAULT_REASONING_EFFORT, actions=ACTIONS, camera_names=None):
     selected = run_settings(model, speed, reasoning_effort)
     work = Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
-    camera_names = list(CAMERAS)
-    camera_names.extend(name for name in ("initial_overhead", "previous_tip_overhead_sequence") if name in images)
+    if camera_names is None:
+        camera_names = [*CAMERAS, *(name for name in ("initial_overhead", "previous_tip_overhead_sequence")
+                                    if name in images)]
+    schema = {**SCHEMA, "properties": {**SCHEMA["properties"], "action": {"type": "string", "enum": list(actions)}}}
     ordered = [Path(images[camera]).resolve(strict=True) for camera in camera_names]
     cli = shutil.which("codex") or str(Path.home() / ".local/bin/codex")
     order_text = ", ".join(name.replace("_", " ") for name in camera_names)
@@ -99,7 +101,7 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
     with tempfile.TemporaryDirectory(prefix="pour-camera-codex-") as directory:
         isolated = Path(directory)
         schema_path = isolated / "action-schema.json"
-        schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
+        schema_path.write_text(json.dumps(schema), encoding="utf-8")
         receipt = isolated / "answer.json"
         command = ["timeout", "--kill-after=8s", "165s", cli, "exec", "-m", selected["model"],
                    "--ephemeral", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
@@ -141,10 +143,10 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
                             proc.terminate()
                             raise RuntimeError("The camera-only actor requested an unexpected tool.")
                         if event_type == "turn.started":
-                            emit("status", "Codex is inspecting the four camera images.")
+                            emit("status", "Codex is inspecting the camera images.")
                         elif event_type == "item.completed" and item_type == "agent_message":
                             value = item.get("text", "")
-                            decision = parse_decision(value)
+                            decision = parse_decision(value, actions)
                             if decision:
                                 message = decision["observation"]
                             else:
@@ -164,7 +166,7 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
                         errors.seek(0)
                         emit("error", public_error(errors.read(24000)))
                 if code == 0 and receipt.is_file():
-                    decision = parse_decision(receipt.read_text(encoding="utf-8"))
+                    decision = parse_decision(receipt.read_text(encoding="utf-8"), actions)
                     if decision:
                         if decision["observation"] != last_model:
                             emit("model", decision["observation"])

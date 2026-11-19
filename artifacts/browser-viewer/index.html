@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#121715">
+  <link rel="icon" href="data:,">
   <title>Pouring · MuJoCo cameras</title>
   <style>
     :root { color-scheme: dark; font: 16px/1.45 Inter, "DejaVu Sans", sans-serif; background: #121715; color: #f0f4ee; }
@@ -106,6 +107,7 @@
 </head>
 <body>
   <main>
+    <nav aria-label="Dashboard" style="margin-bottom:14px"><a href="/" style="color:#bccec1;text-underline-offset:3px">← All tasks</a></nav>
     <header>
       <div><h1 id="title">Pouring</h1><div class="details" id="sceneDetails">MuJoCo</div></div>
       <div class="telemetry">
@@ -116,7 +118,7 @@
       </div>
     </header>
     <div class="toolbar">
-      <nav class="feeds" aria-label="Camera feed"><a href="/" id="codexFeed">Codex run</a><a href="/?view=demo" id="demoFeed">Motion demo</a><a href="/?view=gateway" id="gatewayFeed" hidden>API cameras</a></nav>
+      <nav class="feeds" aria-label="Camera feed"><a href="/pouring" id="codexFeed">Codex run</a><a href="/pouring?view=demo" id="demoFeed">Motion demo</a><a href="/pouring?view=gateway" id="gatewayFeed" hidden>API cameras</a></nav>
       <form id="launcher" class="launcher" aria-label="Start a Codex run" hidden>
         <label for="nextArm">Robot arm<select id="nextArm" name="arm" disabled></select></label>
         <label for="nextSkill">Pouring skill<select id="nextSkill" name="skill_version" disabled></select></label>
@@ -141,6 +143,7 @@
         <output id="outcome" hidden></output>
       </div>
       <div class="actions">
+        <a href="/scenarios">SO-ARM101 button and crocodile trials</a>
         <a href="/codex-run.mp4" id="recording" target="_blank" rel="noopener" hidden>Watch this run</a>
         <a href="/button.mp4" id="buttonRecording" hidden>Watch recorded button test</a>
         <button type="button" id="again" hidden>Run again</button>

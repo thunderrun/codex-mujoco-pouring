@@ -41,7 +41,7 @@ def robot_only_model():
                                           assets=_mesh_assets())
 
 
-def _pouring_scene(task_id):
+def tabletop_scene(task_id):
     root = _mounted_arm()
     root.set("model", "so101_" + task_id)
     world = root.find("worldbody")
@@ -54,9 +54,8 @@ def _pouring_scene(task_id):
     return root
 
 
-class SO101PouringSimulation(PouringSimulation):
+class SO101Robot:
     robot_id = "robotstudio_so101"
-    scene_factory = staticmethod(_pouring_scene)
     home_joints = HOME_JOINTS_RAD
 
     def _initialize_robot(self, seed, xml, extra_assets=None):
@@ -108,6 +107,10 @@ class SO101PouringSimulation(PouringSimulation):
         # TaskSimulation otherwise identifies the benchmark's original YAM source revision.
         report["robot_source_commit"] = MENAGERIE_COMMIT
         return report
+
+
+class SO101PouringSimulation(SO101Robot, PouringSimulation):
+    scene_factory = staticmethod(tabletop_scene)
 
 
 def create_so101_pouring(seed, *, task=None):

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#121715">
+  <link rel="icon" href="data:,">
+  <title>Robotics dashboard · Codex and MuJoCo</title>
+  <script>
+    // Old links reached these panels on the pouring page before the dashboard moved here.
+    if (["#runInstructions", "#runHistory", "#cameras"].includes(location.hash)) {
+      location.replace("/pouring" + location.search + location.hash);
+    }
+  </script>
+  <style>
+    :root { color-scheme: dark; font: 16px/1.45 Inter, "DejaVu Sans", sans-serif; color: #eef3ed; background: #121715; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { width: min(100%, 1400px); margin: auto; padding: clamp(22px, 4vw, 60px) clamp(16px, 4vw, 60px); }
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding-bottom: clamp(18px, 3vw, 34px); }
+    h1 { font-size: clamp(2.25rem, 4.6vw, 4.6rem); line-height: 1.02; margin: 0; letter-spacing: -.06em; font-weight: 650; }
+    header p { margin: .65rem 0 0; color: #b0c0b5; font-size: clamp(.92rem, 1.2vw, 1.1rem); }
+    #total { margin: 0 0 2px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    h2, h3, p { margin: 0; }
+    a { color: #c0e9cd; text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #a6eac1; outline-offset: 4px; }
+    #tasks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 22px); }
+    .card { display: flex; flex-direction: column; color: inherit; text-decoration: none; overflow: hidden; background: #1a221d; border: 1px solid #36483c; border-radius: 9px; }
+    .card:hover { border-color: #7d9b86; }
+    .view { aspect-ratio: 16/9; background: #202823; overflow: hidden; }
+    .view img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .card[data-task="button"] img { object-position: center top; }
+    .card[data-task="pouring"] img { transform: scale(1.35); }
+    .card-body { padding: clamp(14px, 1.65vw, 24px); flex: 1; display: flex; flex-direction: column; }
+    .card-heading, .history-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .card-heading h3 { font-size: clamp(1.15rem, 1.7vw, 1.62rem); line-height: 1.16; font-weight: 630; letter-spacing: -.035em; }
+    .arrow { color: #b6edc8; font-size: 1.25rem; line-height: 1; }
+    .criterion { margin: 7px 0 22px; font-size: .87rem; line-height: 1.5; color: #b6c5ba; }
+    .latest { margin-top: auto; border-top: 1px solid #37453c; padding-top: 13px; display: flex; align-items: baseline; gap: 5px 10px; flex-wrap: wrap; }
+    .latest span, .count { font-size: .78rem; color: #a7b8ac; }
+    .latest strong { color: #d4f3dc; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .count { margin-left: auto; white-space: nowrap; }
+    #history { margin-top: clamp(30px, 4vw, 56px); }
+    .history-heading { align-items: center; margin-bottom: 12px; }
+    .history-heading h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 620; letter-spacing: -.035em; }
+    button { color: #c7dfcf; background: transparent; font: inherit; font-size: .83rem; border: 1px solid #465b4d; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #253329; }
+    .table { border: 1px solid #36443b; border-radius: 7px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: .86rem; white-space: nowrap; }
+    th, td { padding: 10px 13px; }
+    th { background: #222d26; color: #b8cabf; font-size: .76rem; font-weight: 570; }
+    td { border-top: 1px solid #2b382f; }
+    td:nth-last-child(3), td:nth-last-child(2) { font-variant-numeric: tabular-nums; }
+    td:nth-last-child(3) { font-weight: 630; color: #caedd6; }
+    #notice { margin: 15px 0 0; color: #b8c8bc; }
+    [hidden] { display: none !important; }
+    @media (max-width: 780px) {
+      header { display: block; } #total { margin-top: .45rem; font-size: .86rem; }
+      #tasks { grid-template-columns: 1fr; }
+      .card { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr); }
+      .view { height: 100%; aspect-ratio: auto; }
+      .card-body { padding: 13px; }
+      .criterion { margin-bottom: 13px; }
+      .latest { padding-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>Robotics dashboard</h1><p>Camera-guided robot trials with Codex and MuJoCo.</p></div>
+    <p id="total" aria-live="polite"></p>
+  </header>
+  <section id="tasks" aria-label="Task workspaces"></section>
+  <noscript><p>Task workspaces: <a href="/scenarios#button">Red button</a>, <a href="/scenarios#crocodile">Crocodile placement</a>, <a href="/pouring">Pouring</a>.</p></noscript>
+  <p id="notice" role="status">Loading recorded trials…</p>
+  <section id="history" aria-labelledby="history-title">
+    <div class="history-heading"><h2 id="history-title">Run history</h2><button type="button" id="more" aria-controls="historyRows" hidden></button></div>
+    <div class="table" tabindex="0" role="region" aria-label="Recorded trials across tasks">
+      <table><thead><tr><th>Started</th><th>Task</th><th>Robot arm</th><th>Model</th><th>Reasoning</th><th>Score / 100</th><th>Wall time</th><th>Replay</th></tr></thead><tbody id="historyRows"></tbody></table>
+    </div>
+  </section>
+</main>
+<template id="card">
+  <a class="card"><div class="view"><img hidden alt=""></div><div class="card-body">
+    <div class="card-heading"><h3></h3><span class="arrow" aria-hidden="true">↗</span></div>
+    <p class="criterion"></p>
+    <div class="latest"><span>Latest result</span><strong>—</strong><span class="count"></span></div>
+  </div></a>
+</template>
+<script>
+  "use strict";
+  const tasks = [
+    { id: "button", name: "Press the red button", short: "Red button", description: "Press with the gripper until the button flashes.", href: "/scenarios#button", camera: "wrist" },
+    { id: "crocodile", name: "Place the crocodile", short: "Crocodile placement", description: "Set the whole toy inside the marked rectangle.", href: "/scenarios#crocodile", camera: "left" },
+    { id: "pouring", name: "Pour into the cup", short: "Pouring", description: "Transfer 21 beads from the blue cup into the orange cup.", href: "/pouring", camera: "front" }
+  ];
+  const byId = id => document.getElementById(id);
+  const taskById = Object.fromEntries(tasks.map(task => [task.id, task]));
+  const capitalize = value => value ? value[0].toUpperCase() + value.slice(1) : "";
+  const dateFormat = new Intl.DateTimeFormat(undefined, {month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"});
+  let runs = [], expanded = false, signature = null;
+  const initialCount = 6;
+
+  for (const task of tasks) {
+    const card = byId("card").content.firstElementChild.cloneNode(true);
+    card.id = "card-" + task.id; card.dataset.task = task.id; card.href = task.href;
+    card.querySelector("h3").textContent = task.name;
+    card.querySelector(".criterion").textContent = task.description;
+    byId("tasks").append(card);
+  }
+  function duration(seconds) {
+    if (!Number.isFinite(seconds)) return "—";
+    const whole = Math.max(0, Math.floor(seconds));
+    return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
+  }
+  function modelName(model) {
+    const match = /^gpt-([\d.]+)-(.+)$/i.exec(model || "");
+    return match ? "GPT-" + match[1] + " " + capitalize(match[2]) : model || "—";
+  }
+  function score(run) { return Number.isFinite(run.score) ? run.score.toFixed(1) : "—"; }
+  function detailsUrl(run) {
+    return run.task === "pouring" ? "/pouring" : "/scenarios?run=" + encodeURIComponent(run.run_id) + "#" + run.task;
+  }
+  function renderCards() {
+    for (const task of tasks) {
+      const items = runs.filter(run => run.task === task.id);
+      const latest = items[0], card = byId("card-" + task.id);
+      card.querySelector(".count").textContent = items.length + (items.length === 1 ? " run" : " runs");
+      let result = "No runs yet", photo = "";
+      if (latest) {
+        if (latest.phase !== "finished") result = capitalize(latest.phase) || "Pending";
+        else if (task.id === "pouring") result = score(latest) + " / 100";
+        else result = latest.success === true ? "Passed" : latest.success === false ? "Failed" : "Pending";
+        if (task.id === "pouring")
+          photo = "/frame/front.jpg?view=codex&s=1&run=" + encodeURIComponent(latest.run_id);
+        else if (latest.seq > 0)
+          photo = "/scenarios/" + task.id + "/" + encodeURIComponent(latest.run_id) + "/frames/" +
+                  String(latest.seq).padStart(5,"0") + "/" + task.camera + ".jpg";
+      }
+      card.querySelector("strong").textContent = result;
+      const img = card.querySelector("img");
+      if (photo && img.getAttribute("src") !== photo) {
+        img.onload = () => { img.hidden = false; };
+        img.onerror = () => { img.hidden = true; };
+        img.src = photo;
+      }
+    }
+    byId("total").textContent = tasks.length + " tasks · " + runs.length + " recorded " + (runs.length === 1 ? "run" : "runs");
+  }
+  function renderTable() {
+    const fragment = document.createDocumentFragment();
+    for (const run of expanded ? runs : runs.slice(0, initialCount)) {
+      const row = document.createElement("tr");
+      const time = run.started_at && new Date(run.started_at);
+      const values = [
+        time && !Number.isNaN(time.getTime()) ? dateFormat.format(time) : "—",
+        taskById[run.task].short, run.arm_label || "—", modelName(run.model),
+        capitalize(run.reasoning_effort) || "—", score(run), duration(run.duration_seconds)
+      ];
+      for (const value of values) row.insertCell().textContent = value;
+      const cell = row.insertCell();
+      const view = document.createElement("a");
+      view.href = run.replay_url || detailsUrl(run);
+      view.textContent = run.replay_url ? "Watch" : "Open trial";
+      view.setAttribute("aria-label", view.textContent + " " + taskById[run.task].short + " run " + run.run_id);
+      cell.append(view); fragment.append(row);
+    }
+    byId("historyRows").replaceChildren(fragment);
+    const more = byId("more");
+    more.hidden = runs.length <= initialCount;
+    more.textContent = expanded ? "Show latest " + initialCount : "Show all " + runs.length + " runs";
+    more.setAttribute("aria-expanded", String(expanded));
+  }
+  async function getJson(url) {
+    const response = await fetch(url, {cache: "no-store"});
+    if (!response.ok) throw new Error("Unable to load " + url);
+    return response.json();
+  }
+  async function refresh() {
+    try {
+      const [pouring, scenarios] = await Promise.all([getJson("/api/history"), getJson("/api/scenarios")]);
+      const next = [...pouring.runs, ...scenarios].filter(run => Object.hasOwn(taskById, run.task));
+      next.sort((a,b) => (Date.parse(b.started_at) || 0) - (Date.parse(a.started_at) || 0));
+      const key = JSON.stringify(next);
+      if (key !== signature) {
+        signature = key; runs = next; renderCards(); renderTable();
+      }
+      byId("notice").hidden = next.length > 0;
+      byId("notice").textContent = next.length ? "" : "No trials have been recorded yet.";
+    } catch {
+      byId("notice").hidden = false;
+      byId("notice").textContent = "Run history is unavailable. Reconnecting…";
+    } finally { setTimeout(refresh, 5000); }
+  }
+  byId("more").addEventListener("click", () => { expanded = !expanded; renderTable(); });
+  refresh();
+</script>
+</body>
+</html>
