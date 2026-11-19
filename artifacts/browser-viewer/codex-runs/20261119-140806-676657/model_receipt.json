@@ -1,0 +1,1 @@
+{"model": "gpt-6.2-sol", "speed": "standard", "speed_label": "Standard", "service_tier": "default", "reasoning_effort": "max", "arm": "so101", "arm_label": "SO-ARM101", "run_id": "20261119-140806-676657", "task": "pouring", "started_at": "2026-11-19T14:08:06.768+08:00", "layout_reference_run": "20261119-135814-152629", "decision_limit": 20}

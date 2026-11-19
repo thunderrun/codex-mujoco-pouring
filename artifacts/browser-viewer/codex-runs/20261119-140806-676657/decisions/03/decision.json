@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup is upright at the gripper jaws, and the wrist camera shows yellow beads inside.",
+  "action": "lift",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

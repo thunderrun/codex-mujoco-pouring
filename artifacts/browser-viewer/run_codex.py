@@ -16,7 +16,8 @@ from arm_config import ARM_LABELS, DEFAULT_ARM
 from codex_actor import DEFAULT_REASONING_EFFORT, MODEL, REASONING_EFFORTS, decide, run_settings
 from codex_feed import CURRENT, RUNS, empty
 from pouring_arms import load_pouring_arm
-from run_history import runner_lease, sync_history
+from pouring_score import TABLETOP_SCORER
+from run_history import format_outcome, runner_lease, sync_history
 
 CAMERAS = ("front", "overhead", "left", "wrist")
 DECISION_LIMIT = 20
@@ -73,18 +74,19 @@ def go(model=MODEL, speed="standard", seed_from=None, run_id=None, *,
 
 
 def run_episode(root, settings, seed, seed_from):
+    wall_start = time.monotonic()
+    created_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
     run_id = root.name
     model, speed = settings["model"], settings["speed"]
     for name in ("frames", "decisions", "private"):
         (root / name).mkdir()
-    created_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
     manifest = dict(settings, run_id=run_id, task="pouring", started_at=created_at,
                     layout_reference_run=seed_from, decision_limit=DECISION_LIMIT)
     save(root / "model_receipt.json", manifest)
     save(root / "private" / "episode.json", {"seed": seed, "arm": settings["arm"], "layout_reference_run": seed_from})
     status = empty()
     status.update(settings)
-    status.update(run_id=run_id, reasoning=settings["reasoning_effort"].capitalize(), phase="loading",
+    status.update(run_id=run_id, started_at=created_at, reasoning=settings["reasoning_effort"].capitalize(), phase="loading",
                   layout_reference_run=seed_from, caption="Preparing the four RGB cameras")
     save(root / "status.json", status)
     staged = RUNS / f".current-{run_id}"
@@ -200,15 +202,28 @@ def run_episode(root, settings, seed, seed_from):
             event("system", "The decision limit was reached. Grading the current pose.")
         update(phase="running", caption="Grading the settled cups")
         report = sim.finish()
+        report["scoring_version"] = TABLETOP_SCORER
         capture()
-        metrics = report["metrics"]
         save(root / "private" / "grading.json", report)
-        outcome = (f'{metrics["beads_in_target"]} of {metrics["beads_total"]} beads in the orange cup · '
-                   f'{metrics["beads_in_source"]} in the blue cup · {metrics["beads_outside_cups"]} outside at finish · '
-                   f'{metrics["beads_spilled"]} counted as spilled during the run · score {report["score"]:.1f}/100')
+        outcome = format_outcome(report)
         event("result", outcome)
-        update(phase="finished", result=outcome, caption="Codex run complete",
-               finished_at=datetime.now().astimezone().isoformat(timespec="milliseconds"))
+        graded_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
+        update(phase="verifying", graded_at=graded_at, result=outcome, caption="Verifying the recorded decisions")
+        sim.close()
+        sim = None
+        from verify_codex_pour import verify
+        from export_codex_replay import export
+        if not verify(root)["verified"]:
+            raise RuntimeError("Independent replay differed from the recorded run.")
+        update(phase="exporting", caption="Exporting and checking the replay video")
+        export(root)
+        completed_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
+        duration_seconds = round(time.monotonic() - wall_start, 3)
+        save(root / "timing.json", {"started_at": created_at, "graded_at": graded_at,
+                                    "completed_at": completed_at, "duration_seconds": duration_seconds,
+                                    "source": "runner_monotonic"})
+        update(phase="finished", caption="Codex run complete", finished_at=completed_at,
+               duration_seconds=duration_seconds, duration_scope="complete")
     except Exception as exc:
         traceback.print_exc()
         message=f"Run interrupted: {exc}"
@@ -219,14 +234,6 @@ def run_episode(root, settings, seed, seed_from):
     finally:
         if sim is not None:
             sim.close()
-
-    if status["phase"] == "finished":
-        sync_history(RUNS, folder=root)
-        from verify_codex_pour import verify
-        from export_codex_replay import export
-        if not verify(root)["verified"]:
-            event("error", "Independent replay differed from the recorded run.")
-        export(root)
 
 
 if __name__ == "__main__":

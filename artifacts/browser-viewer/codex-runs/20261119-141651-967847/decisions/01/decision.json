@@ -1,0 +1,7 @@
+{
+  "observation": "The overhead view shows yellow beads inside the blue cup, whose top rim is centered near (325, 294).",
+  "action": "approach",
+  "u": 325,
+  "v": 294,
+  "angle": 0
+}

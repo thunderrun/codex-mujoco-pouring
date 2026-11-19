@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup is upright with yellow beads visible inside, and its top rim is centered near (325, 294).",
+  "action": "approach",
+  "u": 325,
+  "v": 294,
+  "angle": 0
+}

@@ -1,0 +1,7 @@
+{
+  "started_at": "2026-11-19T11:29:16.251000+08:00",
+  "graded_at": "2026-11-19T11:32:29.281+08:00",
+  "completed_at": "2026-11-19T11:32:39.069756+08:00",
+  "duration_seconds": 202.819,
+  "source": "Episode manifest start and original runner exit from the systemd journal, after replay verification and video export."
+}

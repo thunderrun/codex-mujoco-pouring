@@ -111,5 +111,5 @@ class SO101PouringSimulation(TaskSimulation):
         return report
 
 
-def create_so101_pouring(seed):
-    return SO101PouringSimulation(PouringTask(), seed)
+def create_so101_pouring(seed, *, task=None):
+    return SO101PouringSimulation(PouringTask() if task is None else task, seed)

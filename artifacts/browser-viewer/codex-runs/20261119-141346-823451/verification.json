@@ -1,0 +1,17 @@
+{
+  "verified": true,
+  "method": "fresh unrendered MuJoCo replay of archived decisions",
+  "decision_count": 12,
+  "rejected_decisions": [],
+  "max_qpos_difference": 0.0,
+  "replay_score": 38.095238095238095,
+  "end_state_match": true,
+  "score_match": true,
+  "metrics_match": true,
+  "success_match": true,
+  "sim_time_match": true,
+  "scene_match": true,
+  "robot_match": true,
+  "engine_version_match": true,
+  "controller_feedback_match": true
+}

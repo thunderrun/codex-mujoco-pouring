@@ -1,0 +1,7 @@
+{
+  "observation": "Yellow beads remain clustered inside the blue cup as it tilts toward the orange opening.",
+  "action": "tip",
+  "u": 0,
+  "v": 0,
+  "angle": 95
+}

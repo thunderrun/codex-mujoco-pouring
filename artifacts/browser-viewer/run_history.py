@@ -54,6 +54,22 @@ def is_active(folder):
             return False
 
 
+def format_outcome(report):
+    metrics = report["metrics"]
+    return (f'{metrics["beads_in_target"]} of {metrics["beads_total"]} beads in the orange cup · '
+            f'{metrics["beads_in_source"]} in the blue cup · {metrics["beads_outside_cups"]} outside at finish · '
+            f'{metrics["beads_spilled"]} counted as spilled during the run · score {report["score"]:.1f}/100')
+
+
+def verified_rescore(folder):
+    report = read_json(folder / "private" / "grading-v2.json")
+    if report:
+        verification = read_json(folder / "verification-v2.json")
+        if verification.get("verified"):
+            return report, verification
+    return None
+
+
 def summarize(folder):
     manifest = read_json(folder / "model_receipt.json")
     status = read_json(folder / "status.json")
@@ -65,7 +81,11 @@ def summarize(folder):
     started = manifest.get("started_at") or first_event
     if not started:
         started = datetime.strptime(folder.name, "%Y%m%d-%H%M%S-%f").astimezone().isoformat()
+    timing = read_json(folder / "timing.json")
+    started = timing.get("started_at", started)
     phase = status.get("phase")
+    if timing.get("completed_at") and phase == "exporting":
+        phase = "finished"  # Export completed immediately before the final status write.
     result = status.get("result")
     finished = status.get("finished_at")
     if phase in ("finished", "error"):
@@ -75,14 +95,41 @@ def summarize(folder):
     else:
         phase = "interrupted"
         result = result or "The runner stopped before recording a final outcome."
+    graded = timing.get("graded_at") or status.get("graded_at")
+    duration = None
+    duration_scope = None
+    if phase == "finished" and timing.get("completed_at"):
+        finished = timing["completed_at"]
+        duration = timing["duration_seconds"]
+        duration_scope = "complete"
+    elif phase in ("finished", "error") and finished:
+        duration = round((datetime.fromisoformat(finished) - datetime.fromisoformat(started)).total_seconds(), 3)
+        if phase == "finished":
+            graded = graded or finished
+            duration_scope = "to_grading"
+        else:
+            duration_scope = "to_error"
+    elif phase == "running":
+        duration_scope = "running"
     grading = read_json(folder / "private" / "grading.json")
     verification = read_json(folder / "verification.json")
+    revision = verified_rescore(folder) if phase == "finished" else None
+    revision_fields = {}
+    if revision:
+        revision_fields["original_score"] = grading["score"]
+        grading, verification = revision
+        result = format_outcome(grading)
     effort = settings.get("reasoning_effort")
     if not effort and status.get("reasoning") == "Standard":
         effort = "medium"  # Original Sol viewer used this display label for medium.
+    scoring_version = grading.get("scoring_version")
+    if grading and not scoring_version:
+        scoring_version = f'upstream-v{grading.get("benchmark_version", "0.3.0")}'
     arm = settings.get("arm", "yam")  # All runs predating arm selection used the YAM.
     return {
         "run_id": folder.name, "started_at": started, "finished_at": finished,
+        "completed_at": timing.get("completed_at"), "graded_at": graded,
+        "duration_seconds": duration, "duration_scope": duration_scope, "duration_source": timing.get("source"),
         "arm": arm, "arm_label": ARM_LABELS.get(arm, arm),
         "phase": phase, "task": settings.get("task", "pouring").lower(),
         "model": settings.get("model"), "speed": settings.get("speed", "standard"),
@@ -90,6 +137,8 @@ def summarize(folder):
         "decision_count": verification.get("decision_count", status.get("decision", 0)),
         "result": result, "score": grading.get("score"), "success": grading.get("success"),
         "metrics": grading.get("metrics", {}), "sim_seconds": grading.get("sim_time"),
+        "scoring_version": scoring_version,
+        **revision_fields,
         "verified": verification.get("verified"),
         "replay_url": f"/runs/{folder.name}/replay.mp4" if (folder / "replay.mp4").is_file() else None,
     }
@@ -109,7 +158,7 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
         for record in records.values():
             arm = record.setdefault("arm", "yam")
             record["arm_label"] = ARM_LABELS.get(arm, arm)
-        if full or not old:
+        if full or old.get("version") != 3:
             folders = [p for p in runs.iterdir() if RUN_ID.fullmatch(p.name) and p.is_dir()]
         else:
             # Running episodes need crash reconciliation, plus completed episodes
@@ -127,7 +176,7 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
             entry = summarize(item)
             if entry:
                 records[item.name] = entry
-        history = {"version": 1, "runs": [records[key] for key in sorted(records, reverse=True)]}
+        history = {"version": 3, "runs": [records[key] for key in sorted(records, reverse=True)]}
         if old != history:
             with tempfile.NamedTemporaryFile("w", dir=runs, prefix=".run-history-", delete=False) as tmp:
                 name = tmp.name

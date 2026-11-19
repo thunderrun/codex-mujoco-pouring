@@ -159,7 +159,16 @@ class Viewer(BaseHTTPRequestHandler):
                 state = gateway.snapshot()
             else:
                 state = codex_feed.snapshot()
-                state["replay_ready"] = (codex_feed.CURRENT / "replay.mp4").is_file()
+                run_id = state.get("run_id", "")
+                if run_history.RUN_ID.fullmatch(run_id):
+                    folder = codex_feed.RUNS / run_id
+                    state["replay_ready"] = (folder / "replay.mp4").is_file()
+                    if state["phase"] == "finished":
+                        revision = run_history.verified_rescore(folder)
+                        if revision:
+                            state["result"] = run_history.format_outcome(revision[0]) + " (rescored)"
+                else:
+                    state["replay_ready"] = False
             if view in ("demo", "gateway") or state.get("run_id"):
                 arm = state.setdefault("arm", "yam")
                 state["arm_label"] = ARM_LABELS.get(arm, arm)

@@ -39,6 +39,7 @@
     .history-scroll th { background: #202923; color: #bbcabf; font-weight: 550; font-size: .78rem; }
     .history-scroll tbody tr + tr { border-top: 1px solid #303d34; }
     .history-score { font-weight: 650; color: #c4edd1; }
+    .history-previous { display: block; font-size: .75rem; font-weight: 400; color: #b2bfb5; }
     .history-message { margin: .5rem 0; color: #b2bfb5; font-size: .86rem; }
     .feeds { display: inline-flex; gap: 2px; border: 1px solid #36463b; background: #19201b; border-radius: 5px; padding: 2px; }
     .feeds a { color: #bdcbc0; text-decoration: none; padding: 5px 12px; border-radius: 3px; font-size: .84rem; }
@@ -102,6 +103,7 @@
       <div class="telemetry">
         <span id="decision" hidden></span>
         <span id="state" class="state" data-phase="loading" role="status">Connecting</span>
+        <span class="clock" id="wallClock" hidden>Wall time <strong id="wallTime"></strong></span>
         <span class="clock">Simulation <strong id="time">0.0 s</strong></span>
       </div>
     </header>
@@ -142,7 +144,7 @@
       </div>
       <div id="historyScroll" class="history-scroll" role="region" aria-label="Saved runs" tabindex="0" hidden>
         <table aria-labelledby="history-title">
-          <thead><tr><th scope="col">Started</th><th scope="col">Robot arm</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
+          <thead><tr><th scope="col">Started</th><th scope="col">Robot arm</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Wall time</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
           <tbody id="historyRows"></tbody>
         </table>
       </div>
@@ -182,6 +184,9 @@
     let modelOptions = [];
     let defaultSpeed = "";
     let defaultEffort = "";
+    const wallClock = document.querySelector("#wallClock");
+    const wallTime = document.querySelector("#wallTime");
+    let savedRuns = new Map();
     let historyKey;
     let loadingHistory = false;
     let nextHistoryFetch = 0;
@@ -227,9 +232,47 @@
       if (!value) return "—";
       return value === "xhigh" ? "Extra high" : value[0].toUpperCase() + value.slice(1);
     }
+    function durationLabel(seconds) {
+      const whole = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(whole / 60);
+      const remainder = String(whole % 60).padStart(2, "0");
+      return minutes + ":" + remainder;
+    }
+    function renderDuration(cell, run) {
+      const started = Date.parse(run.started_at);
+      const scope = run.duration_scope;
+      delete cell.dataset.timerStart;
+      let text = "—";
+      let description = "";
+      if (scope === "running" && Number.isFinite(started)) {
+        cell.dataset.timerStart = String(started);
+        text = durationLabel((Date.now() - started) / 1000);
+        description = "Elapsed wall time";
+      } else if (Number.isFinite(run.duration_seconds)) {
+        text = durationLabel(run.duration_seconds);
+        if (scope === "to_grading") text += " to grading";
+        if (scope === "to_error") text += " to stop";
+        if (scope === "complete") {
+          description = "Includes verification and replay export";
+          const graded = Date.parse(run.graded_at);
+          if (Number.isFinite(graded) && Number.isFinite(started)) {
+            description += " · " + durationLabel((graded - started) / 1000) + " to grading";
+          }
+        }
+      }
+      if (cell.textContent !== text) cell.textContent = text;
+      cell.title = description;
+    }
+    setInterval(() => {
+      for (const cell of document.querySelectorAll("[data-timer-start]")) {
+        const text = durationLabel((Date.now() - Number(cell.dataset.timerStart)) / 1000);
+        if (cell.textContent !== text) cell.textContent = text;
+      }
+    }, 1000);
     function renderHistory(runs) {
       const key = JSON.stringify(runs);
       if (historyKey !== key) {
+        savedRuns = new Map(runs.map(run => [run.run_id, run]));
         const rows = runs.map(run => {
           const row = document.createElement("tr");
           const started = Date.parse(run.started_at);
@@ -240,10 +283,20 @@
           const score = Number.isFinite(run.score) ? run.score.toFixed(1) : "—";
           const status = historyPhases[run.phase] || run.phase || "—";
           for (const value of [stamp, run.arm_label || run.arm || "I2RT YAM", modelNames[run.model] || run.model || "—",
-              settingLabel(run.reasoning_effort), settingLabel(run.speed), score, beads, status]) {
+              settingLabel(run.reasoning_effort), settingLabel(run.speed), score, beads]) {
             row.insertCell().textContent = value;
           }
-          row.cells[5].className = "history-score";
+          const scoreCell = row.cells[5];
+          scoreCell.className = "history-score";
+          if (run.scoring_version) scoreCell.title = run.scoring_version;
+          if (Number.isFinite(run.original_score) && run.original_score !== run.score) {
+            const previous = document.createElement("small");
+            previous.className = "history-previous";
+            previous.textContent = "Originally " + run.original_score.toFixed(1);
+            scoreCell.append(previous);
+          }
+          renderDuration(row.insertCell(), run);
+          row.insertCell().textContent = status;
           const cell = row.insertCell();
           if (run.replay_url && run.replay_url === "/runs/" + run.run_id + "/replay.mp4") {
             const link = document.createElement("a");
@@ -352,7 +405,7 @@
         updateLaunch();
       }
     });
-    const phases = { starting: "Starting", loading: "Loading", thinking: "Codex working", moving: "Arm moving", running: "Live", ready: "Ready", finished: "Finished", error: "Stopped" };
+    const phases = { starting: "Starting", loading: "Loading", thinking: "Codex working", moving: "Arm moving", running: "Live", verifying: "Verifying replay", exporting: "Exporting video", ready: "Ready", finished: "Finished", error: "Stopped" };
     const eventLabels = { system: "Run", codex: "Codex", command: "Command", result: "Result", error: "Error" };
     const eventRows = new Map();
     const log = document.querySelector("#events");
@@ -378,6 +431,19 @@
       const ended = ["ready", "finished", "error"].includes(state.phase) && phase !== state.phase;
       currentRun = state.run_id;
       phase = state.phase;
+      const saved = savedRuns.get(currentRun);
+      let timing = saved;
+      if (state.duration_scope === "complete") timing = state;
+      else if (!["ready", "finished", "error"].includes(phase) && saved?.phase !== "interrupted") {
+        timing = {started_at: state.started_at || saved?.started_at, duration_scope: "running"};
+      }
+      if (timing && timing.duration_scope && !(phase === "finished" && timing.duration_scope === "running")) {
+        renderDuration(wallTime, timing);
+        wallClock.hidden = false;
+      } else {
+        wallClock.hidden = true;
+        delete wallTime.dataset.timerStart;
+      }
       if (pendingRun && (pendingRun.previousRun !== currentRun || Date.now() > pendingRun.expires)) {
         const started = pendingRun.previousRun !== currentRun;
         pendingRun = null;

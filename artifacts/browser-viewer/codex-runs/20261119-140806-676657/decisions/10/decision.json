@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the blue cup appears empty, with yellow beads inside and beside the orange cup.",
+  "action": "return",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

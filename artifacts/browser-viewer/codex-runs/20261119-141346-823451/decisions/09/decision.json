@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the blue cup above the orange rim, and its interior appears empty in the wrist view.",
+  "action": "return",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

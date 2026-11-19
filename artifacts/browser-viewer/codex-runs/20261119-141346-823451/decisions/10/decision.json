@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the empty blue cup at table level near its pickup site.",
+  "action": "release",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

@@ -133,7 +133,7 @@ def verify(movie, num_frames):
 def export(root, *, partial=False, destination=None):
     root = Path(root).resolve()
     state = json.loads((root / "status.json").read_text())
-    if not partial and state["phase"] not in ("finished", "error"):
+    if not partial and state["phase"] not in ("exporting", "finished", "error"):
         raise ValueError("The episode is still recording.")
     movie = Path(destination).resolve() if destination else root / "replay.mp4"
     if partial and movie == root / "replay.mp4":

@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup’s visible interior appears empty in the wrist view.",
+  "action": "upright",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

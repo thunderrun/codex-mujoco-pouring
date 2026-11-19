@@ -1,0 +1,15 @@
+{
+  "verified": true,
+  "method": "fresh replays with original and revised pouring scorers",
+  "scoring_version": "tabletop-v2",
+  "original_scoring_version": "upstream-v0.3.0",
+  "original_score": 23.809523809523807,
+  "replay_score": 23.809523809523807,
+  "decision_count": 12,
+  "rejected_decisions": [],
+  "original_replay_verified": true,
+  "end_state_match": true,
+  "max_qpos_difference": 0.0,
+  "unchanged_grading_inputs_match": true,
+  "controller_feedback_match": true
+}

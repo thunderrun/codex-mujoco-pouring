@@ -1,0 +1,7 @@
+{
+  "observation": "The tilted blue cup appears empty in the wrist view, and several beads are visible on the table beyond the orange cup.",
+  "action": "upright",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

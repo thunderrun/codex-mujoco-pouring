@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup is back near its pickup spot, with its opening facing up and the gripper still around it.",
+  "action": "release",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}
