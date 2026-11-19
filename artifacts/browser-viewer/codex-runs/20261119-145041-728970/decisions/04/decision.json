@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the blue cup above the table with the beads inside, and the orange rim is centered near (368, 192).",
+  "action": "align",
+  "u": 368,
+  "v": 192,
+  "angle": 0
+}

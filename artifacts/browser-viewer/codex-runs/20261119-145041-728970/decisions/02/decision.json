@@ -1,0 +1,7 @@
+{
+  "observation": "The open gripper is aligned with the blue rim, and the wrist view shows the yellow beads inside the cup.",
+  "action": "grasp",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

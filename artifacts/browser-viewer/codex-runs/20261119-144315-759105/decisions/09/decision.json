@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup appears empty in the gripper, and yellow beads are visible inside the orange cup.",
+  "action": "return",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

@@ -1,0 +1,15 @@
+{
+  "model": "gpt-6.2-astra",
+  "speed": "standard",
+  "speed_label": "Standard",
+  "service_tier": "default",
+  "reasoning_effort": "medium",
+  "input_sha256": "9967dc0f22363e1561b211944827783f376baa362b28402558a2a768f7c77686",
+  "observation_views": [
+    "front",
+    "overhead",
+    "left",
+    "wrist",
+    "initial_overhead"
+  ]
+}

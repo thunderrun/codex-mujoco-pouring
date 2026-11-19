@@ -1,0 +1,7 @@
+{
+  "observation": "The overhead view shows the blue cup’s inner rim centered at about (325, 294).",
+  "action": "approach",
+  "u": 325,
+  "v": 294,
+  "angle": 0
+}

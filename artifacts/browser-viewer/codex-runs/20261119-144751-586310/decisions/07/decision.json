@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view still shows yellow beads clustered inside the blue cup.",
+  "action": "tip",
+  "u": 0,
+  "v": 0,
+  "angle": 110
+}

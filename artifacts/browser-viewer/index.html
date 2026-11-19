@@ -39,8 +39,16 @@
     .history-scroll th { background: #202923; color: #bbcabf; font-weight: 550; font-size: .78rem; }
     .history-scroll tbody tr + tr { border-top: 1px solid #303d34; }
     .history-score { font-weight: 650; color: #c4edd1; }
-    .history-previous { display: block; font-size: .75rem; font-weight: 400; color: #b2bfb5; }
     .history-message { margin: .5rem 0; color: #b2bfb5; font-size: .86rem; }
+    #runInstructions { margin-top: 14px; border: 1px solid #3b473e; border-radius: 6px; padding: 10px 14px; }
+    #runInstructions summary { cursor: pointer; font-weight: 600; }
+    .instruction-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; }
+    .instruction-controls label { display: grid; gap: 3px; color: #b8c8bd; font-size: .8rem; }
+    .instruction-controls select, .instruction-controls button { font: inherit; color: #edf4ef; background: #202923; border: 1px solid #4b5c51; padding: 5px 8px; border-radius: 4px; }
+    .instruction-controls button { cursor: pointer; font-size: .85rem; }
+    .instruction-controls button[aria-pressed="true"] { color: #112517; background: #b9edca; }
+    #instructionText { max-height: 25rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .85rem/1.55 monospace; padding: 12px; background: #0d110f; border-radius: 4px; }
+    #instructionText:focus-visible { outline: 2px solid #b2f8cc; }
     .feeds { display: inline-flex; gap: 2px; border: 1px solid #36463b; background: #19201b; border-radius: 5px; padding: 2px; }
     .feeds a { color: #bdcbc0; text-decoration: none; padding: 5px 12px; border-radius: 3px; font-size: .84rem; }
     .feeds a[aria-current="page"] { background: #34483b; color: #e5f5e9; }
@@ -111,6 +119,7 @@
       <nav class="feeds" aria-label="Camera feed"><a href="/" id="codexFeed">Codex run</a><a href="/?view=demo" id="demoFeed">Motion demo</a><a href="/?view=gateway" id="gatewayFeed" hidden>API cameras</a></nav>
       <form id="launcher" class="launcher" aria-label="Start a Codex run" hidden>
         <label for="nextArm">Robot arm<select id="nextArm" name="arm" disabled></select></label>
+        <label for="nextSkill">Pouring skill<select id="nextSkill" name="skill_version" disabled></select></label>
         <label for="nextModel">Model<select id="nextModel" name="model" disabled></select></label>
         <label for="nextSpeed">Inference speed<select id="nextSpeed" name="speed" disabled></select></label>
         <label for="nextEffort">Reasoning effort<select id="nextEffort" name="reasoning_effort" disabled></select></label>
@@ -144,11 +153,25 @@
       </div>
       <div id="historyScroll" class="history-scroll" role="region" aria-label="Saved runs" tabindex="0" hidden>
         <table aria-labelledby="history-title">
-          <thead><tr><th scope="col">Started</th><th scope="col">Robot arm</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Wall time</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
+          <thead><tr><th scope="col">Started</th><th scope="col">Robot arm</th><th scope="col">Pouring skills</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Wall time</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
           <tbody id="historyRows"></tbody>
         </table>
       </div>
       <p id="historyMessage" class="history-message" role="status">Loading saved runs…</p>
+      <details id="runInstructions">
+        <summary>View pouring skills and decision prompts</summary>
+        <p class="history-message" id="v2Changes" hidden>The v2 controller lowers the pouring lip and compensates as it tilts. After each tilt, Codex uses an overhead image sequence to inspect the bead stream and adjust its aim.</p>
+        <div class="instruction-controls">
+          <label>Run<select id="instructionRun"></select></label>
+          <label id="decisionPicker">Decision<select id="instructionDecision" disabled><option value="">Latest available</option></select></label>
+          <div role="group" aria-label="Instruction text">
+            <button type="button" id="showPrompt" aria-pressed="true" aria-controls="instructionText">Decision prompt</button>
+            <button type="button" id="showSkill" aria-pressed="false" aria-controls="instructionText">Pouring skill</button>
+          </div>
+        </div>
+        <p id="instructionStatus" class="history-message" role="status"></p>
+        <pre id="instructionText" role="region" aria-label="Decision prompt" tabindex="0" hidden></pre>
+      </details>
     </section>
   </main>
   <script>
@@ -170,6 +193,7 @@
     document.querySelector("#console").hidden = !isCodex;
     const launcher = document.querySelector("#launcher");
     const nextArm = document.querySelector("#nextArm");
+    const nextSkill = document.querySelector("#nextSkill");
     const sceneDetails = document.querySelector("#sceneDetails");
     const nextModel = document.querySelector("#nextModel");
     const nextSpeed = document.querySelector("#nextSpeed");
@@ -181,6 +205,7 @@
     const historyScroll = document.querySelector("#historyScroll");
     document.querySelector("#runHistory").hidden = !isCodex;
     launcher.hidden = !isCodex;
+    let armOptions = [];
     let modelOptions = [];
     let defaultSpeed = "";
     let defaultEffort = "";
@@ -216,13 +241,19 @@
       selectChoices(nextEffort, efforts, efforts.some(item => item.id === preferredEffort) ? preferredEffort : defaultEffort);
       updateLaunch();
     }
+    function updateSkillChoices(preferred) {
+      const arm = armOptions.find(item => item.id === nextArm.value);
+      const skills = arm?.skills || [];
+      selectChoices(nextSkill, skills, skills.some(item => item.id === preferred) ? preferred : arm?.default_skill);
+    }
     function updateLaunch() {
       nextArm.disabled = submitting || !nextArm.options.length;
+      nextSkill.disabled = submitting || !nextSkill.options.length;
       nextModel.disabled = submitting || !modelOptions.length;
       nextSpeed.disabled = submitting || !nextSpeed.options.length;
       nextEffort.disabled = submitting || !nextEffort.options.length;
       const available = ["ready", "finished", "error"].includes(phase);
-      startRun.disabled = submitting || !!pendingRun || operatorBusy || Date.now() < conflictUntil || !available || !nextArm.value || !nextSpeed.value || !nextEffort.value;
+      startRun.disabled = submitting || !!pendingRun || operatorBusy || Date.now() < conflictUntil || !available || !nextArm.value || !nextSkill.value || !nextSpeed.value || !nextEffort.value;
       startRun.textContent = submitting || pendingRun ? "Starting…" : "Start run";
     }
     const runDate = new Intl.DateTimeFormat(undefined, {dateStyle:"medium", timeStyle:"short"});
@@ -232,6 +263,120 @@
       if (!value) return "—";
       return value === "xhigh" ? "Extra high" : value[0].toUpperCase() + value.slice(1);
     }
+    function skillLabel(version) {
+      return version?.replace(/^(so101|yam)-pour-(v\d+)$/, "$2") || "—";
+    }
+    const instructionPanel = document.querySelector("#runInstructions");
+    const instructionRun = document.querySelector("#instructionRun");
+    const instructionDecision = document.querySelector("#instructionDecision");
+    const instructionStatus = document.querySelector("#instructionStatus");
+    const instructionText = document.querySelector("#instructionText");
+    const showPrompt = document.querySelector("#showPrompt");
+    const showSkill = document.querySelector("#showSkill");
+    const supportedSkills = new Set(["yam-pour-v1", "so101-pour-v1", "so101-pour-v2"]);
+    let instructionPacket;
+    let instructionRequest;
+    let instructionRunList;
+
+    function displayInstructions() {
+      const prompt = showPrompt.getAttribute("aria-pressed") === "true";
+      const body = prompt ? instructionPacket?.prompt_text : instructionPacket?.skill_text;
+      const text = typeof body === "string" ? body : "";
+      if (instructionText.textContent !== text) instructionText.textContent = text;
+      instructionText.setAttribute("aria-label", prompt ? "Decision prompt" : "Pouring skill");
+      instructionText.hidden = !text;
+      if (instructionPacket) instructionStatus.textContent = text ? "" :
+        (prompt ? "Waiting for a recorded decision prompt." : "The skill text is unavailable for this run.");
+    }
+    for (const button of [showPrompt, showSkill]) {
+      button.addEventListener("click", () => {
+        showPrompt.setAttribute("aria-pressed", String(button === showPrompt));
+        showSkill.setAttribute("aria-pressed", String(button === showSkill));
+        displayInstructions();
+      });
+    }
+
+    async function loadInstructions() {
+      const runId = instructionRun.value;
+      const number = instructionDecision.value;
+      const params = new URLSearchParams({run_id:runId});
+      if (number) params.set("decision", number);
+      const key = params.toString();
+      if (instructionRequest?.key === key) return;
+      instructionRequest?.controller.abort();
+      instructionRequest = null;
+      if (!instructionPanel.open) return;
+      if (instructionPacket?.run_id !== runId || (number && instructionPacket?.decision !== Number(number))) {
+        instructionPacket = null;
+        displayInstructions();
+      }
+      if (!runId) {
+        instructionStatus.textContent = "No pouring skills are available in the run history yet.";
+        return;
+      }
+      if (!instructionPacket) instructionStatus.textContent = "Loading instructions…";
+      const controller = new AbortController();
+      instructionRequest = {key, controller};
+      try {
+        const response = await fetch("/api/run-instructions?" + key, {cache:"no-store", signal:controller.signal});
+        if (!response.ok) throw Error("instructions");
+        const packet = await response.json();
+        if (controller.signal.aborted) return;
+        if (packet.run_id !== runId || !Array.isArray(packet.decisions)) throw Error("instructions");
+        const nums = packet.decisions;
+        const choices = [{id:"", label:nums.length ? "Latest available (" + nums[nums.length - 1] + ")" : "Latest available"},
+          ...nums.map(n => ({id:String(n), label:String(n)}))];
+        selectChoices(instructionDecision, choices, number);
+        instructionDecision.disabled = nums.length === 0;
+        instructionPacket = packet;
+        displayInstructions();
+      } catch {
+        if (controller.signal.aborted) return;
+        instructionStatus.textContent = "The recorded instructions are unavailable. Retrying while this panel is open.";
+      } finally {
+        if (instructionRequest?.controller === controller) instructionRequest = null;
+      }
+    }
+
+    function resetInstructionDecision() {
+      instructionDecision.replaceChildren(new Option("Latest available", ""));
+      instructionDecision.disabled = true;
+      const hasPrompts = savedRuns.get(instructionRun.value)?.skill_version === "so101-pour-v2";
+      document.querySelector("#v2Changes").hidden = !hasPrompts;
+      document.querySelector("#decisionPicker").hidden = !hasPrompts;
+      showPrompt.hidden = !hasPrompts;
+      showPrompt.setAttribute("aria-pressed", String(hasPrompts));
+      showSkill.setAttribute("aria-pressed", String(!hasPrompts));
+      instructionPacket = null;
+      displayInstructions();
+    }
+    function updateInstructionRuns(runs) {
+      const choices = runs.filter(run => supportedSkills.has(run.skill_version)).map(run => {
+        const time = Date.parse(run.started_at);
+        return {id:run.run_id, label:[run.arm_label || run.arm, skillLabel(run.skill_version),
+          modelNames[run.model] || run.model, settingLabel(run.reasoning_effort), Number.isFinite(time) ? runDate.format(time) : run.run_id].join(" · ")};
+      });
+      const key = JSON.stringify(choices);
+      if (instructionRunList !== key) {
+        const previous = instructionRun.value;
+        selectChoices(instructionRun, choices, previous);
+        instructionRun.disabled = !choices.length;
+        if (!instructionRunList || previous !== instructionRun.value) resetInstructionDecision();
+        instructionRunList = key;
+      }
+      if (instructionPanel.open) loadInstructions();
+    }
+    instructionRun.addEventListener("change", () => { resetInstructionDecision(); loadInstructions(); });
+    instructionDecision.addEventListener("change", () => { instructionPacket = null; loadInstructions(); });
+    instructionPanel.addEventListener("toggle", () => {
+      if (instructionPanel.open) loadInstructions();
+      else { instructionRequest?.controller.abort(); instructionRequest = null; }
+    });
+    function openLinkedInstructions() {
+      if (location.hash === "#runInstructions") instructionPanel.open = true;
+    }
+    window.addEventListener("hashchange", openLinkedInstructions);
+    openLinkedInstructions();
     function durationLabel(seconds) {
       const whole = Math.max(0, Math.floor(seconds));
       const minutes = Math.floor(whole / 60);
@@ -282,19 +427,33 @@
             ? counts.beads_in_target + " / " + counts.beads_total : "—";
           const score = Number.isFinite(run.score) ? run.score.toFixed(1) : "—";
           const status = historyPhases[run.phase] || run.phase || "—";
-          for (const value of [stamp, run.arm_label || run.arm || "I2RT YAM", modelNames[run.model] || run.model || "—",
-              settingLabel(run.reasoning_effort), settingLabel(run.speed), score, beads]) {
+          row.insertCell().textContent = stamp;
+          row.insertCell().textContent = run.arm_label || run.arm || "I2RT YAM";
+          const skillCell = row.insertCell();
+          skillCell.textContent = skillLabel(run.skill_version);
+          skillCell.title = run.skill_version || "";
+          if (supportedSkills.has(run.skill_version)) {
+            const link = document.createElement("a");
+            link.href = "#runInstructions";
+            link.textContent = skillCell.textContent;
+            link.setAttribute("aria-label", "View " + skillCell.textContent + " pouring instructions for " +
+              (run.arm_label || run.arm) + " with " + (modelNames[run.model] || run.model) + " from " + stamp);
+            link.addEventListener("click", () => {
+              instructionRun.value = run.run_id;
+              resetInstructionDecision();
+              if (instructionPanel.open) loadInstructions();
+              else instructionPanel.open = true;
+            });
+            skillCell.replaceChildren(link);
+          }
+          for (const value of [modelNames[run.model] || run.model || "—", settingLabel(run.reasoning_effort), settingLabel(run.speed)]) {
             row.insertCell().textContent = value;
           }
-          const scoreCell = row.cells[5];
+          const scoreCell = row.insertCell();
+          scoreCell.textContent = score;
           scoreCell.className = "history-score";
           if (run.scoring_version) scoreCell.title = run.scoring_version;
-          if (Number.isFinite(run.original_score) && run.original_score !== run.score) {
-            const previous = document.createElement("small");
-            previous.className = "history-previous";
-            previous.textContent = "Originally " + run.original_score.toFixed(1);
-            scoreCell.append(previous);
-          }
+          row.insertCell().textContent = beads;
           renderDuration(row.insertCell(), run);
           row.insertCell().textContent = status;
           const cell = row.insertCell();
@@ -317,6 +476,7 @@
       historyScroll.hidden = !runs.length;
       historyMessage.textContent = runs.length ? "" : "No runs saved yet.";
       historyMessage.hidden = !!runs.length;
+      updateInstructionRuns(runs);
     }
     async function refreshHistory() {
       if (loadingHistory) return;
@@ -347,7 +507,9 @@
         document.querySelector("#gatewayFeed").hidden = options.capabilities?.gateway === false;
         document.querySelector("#buttonRecording").hidden = options.capabilities?.button_recording === false;
         if (!options.arms?.length || !options.models?.length) throw Error("settings");
-        selectChoices(nextArm, options.arms, nextArm.value || options.default_arm);
+        armOptions = options.arms;
+        selectChoices(nextArm, armOptions, nextArm.value || options.default_arm);
+        updateSkillChoices(nextSkill.value);
         const selectedModel = nextModel.value || options.default_model;
         const selectedSpeed = nextSpeed.value || options.default_speed;
         const selectedEffort = nextEffort.value || options.default_reasoning_effort;
@@ -372,6 +534,8 @@
         loadingOptions = false;
       }
     }
+    nextArm.addEventListener("change", () => { updateSkillChoices(); updateLaunch(); });
+    nextSkill.addEventListener("change", updateLaunch);
     nextModel.addEventListener("change", () => updateModelChoices(nextSpeed.value, nextEffort.value));
     launcher.addEventListener("submit", async event => {
       event.preventDefault();
@@ -383,7 +547,8 @@
       try {
         const response = await fetch("/api/runs", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ arm: nextArm.value, model: nextModel.value, speed: nextSpeed.value, reasoning_effort: nextEffort.value, layout: "previous" })
+          body: JSON.stringify({ arm: nextArm.value, skill_version: nextSkill.value, model: nextModel.value,
+            speed: nextSpeed.value, reasoning_effort: nextEffort.value, layout: "previous" })
         });
         if (response.status === 409) {
           operatorBusy = true;
@@ -461,7 +626,9 @@
       const effort = savedEffort === "standard" ? "medium" : savedEffort;
       const effortLabel = currentModel?.reasoning_efforts?.find(item => item.id === effort)?.label || effort;
       const reasoning = effortLabel ? effortLabel + " reasoning" : "";
-      document.querySelector("#model").textContent = [state.arm_label, model, speed, reasoning].filter(Boolean).join(" · ");
+      const skill = state.skill_version || saved?.skill_version;
+      document.querySelector("#model").textContent = [state.arm_label || saved?.arm_label, model, speed, reasoning,
+        skill && "Pouring skills " + skillLabel(skill)].filter(Boolean).join(" · ");
       decision.hidden = !(Number(state.decision) > 0);
       if (!decision.hidden) decision.textContent = "Decision " + state.decision;
       if (logRun !== state.run_id) {

@@ -1,0 +1,7 @@
+{
+  "observation": "The empty blue cup is back at table level with the gripper still around it.",
+  "action": "release",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

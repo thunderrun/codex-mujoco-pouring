@@ -7,6 +7,7 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
+from arm_config import LEGACY_SKILL
 from pouring_arms import load_pouring_arm
 from pouring_score import TABLETOP_SCORER, UPSTREAM_SCORER
 
@@ -18,6 +19,7 @@ def load(path):
 def replay_episode(directory, scoring_version):
     episode = load(directory / "private" / "episode.json")
     arm = episode.get("arm", "yam")  # The original archives predate arm selection.
+    skill_version = episode.get("skill_version", LEGACY_SKILL[arm])
     steps = sorted((directory / "decisions").glob("*/decision.json"))
     numbers = [int(step.parent.name) for step in steps]
     if not numbers or numbers != list(range(1, len(steps) + 1)):
@@ -32,7 +34,8 @@ def replay_episode(directory, scoring_version):
             feedback.setdefault(event["decision"], event["text"])
     rejected = []
     feedback_matches = True
-    sim, controller, _ = load_pouring_arm(arm, episode["seed"], scoring_version=scoring_version)
+    sim, controller, _ = load_pouring_arm(arm, episode["seed"], scoring_version=scoring_version,
+                                          skill_version=skill_version)
     try:
         controls = controller(sim)
         for number, step in zip(numbers, steps):

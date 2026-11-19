@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the upright, empty blue cup above the table. Several beads are inside the orange cup, and one is visible outside its rim.",
+  "action": "return",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the blue cup at table level, and yellow beads are visible inside the orange rim.",
+  "action": "release",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

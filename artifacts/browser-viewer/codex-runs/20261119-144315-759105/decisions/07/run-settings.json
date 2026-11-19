@@ -1,0 +1,16 @@
+{
+  "model": "gpt-6.2-astra",
+  "speed": "standard",
+  "speed_label": "Standard",
+  "service_tier": "default",
+  "reasoning_effort": "max",
+  "input_sha256": "f6f10ee27b67198d2772d8ad2c74186e54a6fb2fc09b7d0adc84e6e619b4e060",
+  "observation_views": [
+    "front",
+    "overhead",
+    "left",
+    "wrist",
+    "initial_overhead",
+    "previous_tip_overhead_sequence"
+  ]
+}

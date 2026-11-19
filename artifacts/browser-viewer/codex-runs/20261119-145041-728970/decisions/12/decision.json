@@ -1,0 +1,7 @@
+{
+  "observation": "Both cups stand upright on the table, and the open gripper is just above the empty blue cup.",
+  "action": "park",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

@@ -19,6 +19,7 @@ from gateway import GatewayFeed
 import codex_feed
 import run_history
 import run_launcher
+from run_instructions import instructions
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -148,6 +149,9 @@ class Viewer(BaseHTTPRequestHandler):
         elif parsed.path == "/api/history":
             self.reply(json.dumps(run_history.sync_history(), ensure_ascii=False).encode(),
                        "application/json; charset=utf-8")
+        elif parsed.path == "/api/run-instructions":
+            data, status = instructions(codex_feed.RUNS, parse_qs(parsed.query, keep_blank_values=True))
+            self.reply(json.dumps(data, ensure_ascii=False).encode(), "application/json; charset=utf-8", status)
         elif parsed.path == "/api/status":
             if view == "demo":
                 demo.start(initial=True)

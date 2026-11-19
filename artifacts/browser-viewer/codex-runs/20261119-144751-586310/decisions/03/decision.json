@@ -1,0 +1,7 @@
+{
+  "observation": "The front view shows the gripper around the upright blue cup, which is still resting on the table.",
+  "action": "lift",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

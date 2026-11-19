@@ -1,4 +1,5 @@
 """Read public RGB frames and return one action from the authenticated Codex CLI."""
+import hashlib
 import json
 import math
 import re
@@ -82,8 +83,8 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
     selected = run_settings(model, speed, reasoning_effort)
     work = Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
-    (work / "run-settings.json").write_text(json.dumps(selected, indent=2) + "\n", encoding="utf-8")
-    camera_names = (*CAMERAS, "initial_overhead") if "initial_overhead" in images else CAMERAS
+    camera_names = list(CAMERAS)
+    camera_names.extend(name for name in ("initial_overhead", "previous_tip_overhead_sequence") if name in images)
     ordered = [Path(images[camera]).resolve(strict=True) for camera in camera_names]
     cli = shutil.which("codex") or str(Path.home() / ".local/bin/codex")
     order_text = ", ".join(name.replace("_", " ") for name in camera_names)
@@ -91,6 +92,9 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
                      "If you give a progress update, use a brief public camera observation. "
                      "Return your one final camera observation and requested action as the specified JSON. "
                      "Use only the public information and images in this message. Do not use tools.")
+    receipt_fields = {**selected, "input_sha256": hashlib.sha256(actual_prompt.encode("utf-8")).hexdigest(),
+                      "observation_views": camera_names}
+    (work / "run-settings.json").write_text(json.dumps(receipt_fields, indent=2) + "\n", encoding="utf-8")
     (work / "input.txt").write_text(actual_prompt, encoding="utf-8")
     with tempfile.TemporaryDirectory(prefix="pour-camera-codex-") as directory:
         isolated = Path(directory)

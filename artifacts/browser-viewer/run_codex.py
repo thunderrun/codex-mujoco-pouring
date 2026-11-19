@@ -1,5 +1,6 @@
 """Run one camera-guided Codex pouring episode and publish it to the local viewer."""
 import argparse
+import hashlib
 import io
 import json
 import os
@@ -12,7 +13,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from arm_config import ARM_LABELS, DEFAULT_ARM
+from arm_config import ARM_LABELS, DEFAULT_ARM, DEFAULT_SKILL, checked_skill
 from codex_actor import DEFAULT_REASONING_EFFORT, MODEL, REASONING_EFFORTS, decide, run_settings
 from codex_feed import CURRENT, RUNS, empty
 from pouring_arms import load_pouring_arm
@@ -43,6 +44,23 @@ def overhead_ruler(image):
     return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
 
 
+def tip_sequence(root, step_dir, aim, start, end):
+    """Show the last tilt at the chosen receiver in four chronological RGB crops."""
+    width = 160
+    strip = Image.new("RGB", (4 * width, width + 20), "#141916")
+    draw = ImageDraw.Draw(strip)
+    for i, fraction in enumerate((.25, .5, .75, 1.)):
+        seq = start + round((end - start) * fraction)
+        with Image.open(root / "frames" / f"{seq:05d}" / "overhead.jpg") as view:
+            x = max(0, min(aim[0] - width // 2, view.width - width))
+            y = max(0, min(aim[1] - width // 2, view.height - width))
+            strip.paste(view.crop((x, y, x + width, y + width)), (i * width, 20))
+        draw.text((i * width + 5, 3), f"Tip {int(100 * fraction)}%", fill="white")
+    path = step_dir / "overhead-tip.jpg"
+    strip.save(path, quality=94, subsampling=0)
+    return path
+
+
 def checked_id(value):
     if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[0-9]{6}", value):
         raise ValueError("Expected a run ID in YYYYMMDD-HHMMSS-ffffff format.")
@@ -50,11 +68,12 @@ def checked_id(value):
 
 
 def go(model=MODEL, speed="standard", seed_from=None, run_id=None, *,
-       reasoning_effort=DEFAULT_REASONING_EFFORT, arm=DEFAULT_ARM):
+       reasoning_effort=DEFAULT_REASONING_EFFORT, arm=DEFAULT_ARM, skill_version=None):
     settings = run_settings(model, speed, reasoning_effort)
-    if arm not in ARM_LABELS:
+    if not isinstance(arm, str) or arm not in ARM_LABELS:
         raise ValueError(f"Unknown pouring arm: {arm!r}")
-    settings.update(arm=arm, arm_label=ARM_LABELS[arm])
+    version = checked_skill(arm, DEFAULT_SKILL[arm] if skill_version is None else skill_version)
+    settings.update(arm=arm, arm_label=ARM_LABELS[arm], skill_version=version)
     run_id = checked_id(run_id or datetime.now().strftime("%Y%m%d-%H%M%S-%f"))
     RUNS.mkdir(exist_ok=True)
     if seed_from is None:
@@ -77,13 +96,15 @@ def run_episode(root, settings, seed, seed_from):
     wall_start = time.monotonic()
     created_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
     run_id = root.name
+    skill_version = settings["skill_version"]
     model, speed = settings["model"], settings["speed"]
     for name in ("frames", "decisions", "private"):
         (root / name).mkdir()
     manifest = dict(settings, run_id=run_id, task="pouring", started_at=created_at,
                     layout_reference_run=seed_from, decision_limit=DECISION_LIMIT)
     save(root / "model_receipt.json", manifest)
-    save(root / "private" / "episode.json", {"seed": seed, "arm": settings["arm"], "layout_reference_run": seed_from})
+    save(root / "private" / "episode.json", {"seed": seed, "arm": settings["arm"], "skill_version": skill_version,
+                                             "layout_reference_run": seed_from})
     status = empty()
     status.update(settings)
     status.update(run_id=run_id, started_at=created_at, reasoning=settings["reasoning_effort"].capitalize(), phase="loading",
@@ -133,7 +154,13 @@ def run_episode(root, settings, seed, seed_from):
         with (root / "frames.jsonl").open("a") as index:
             index.write(json.dumps({"seq":status["seq"], "sim_time":status["sim_time"], "wall_time":time.time()}) + "\n")
     try:
-        sim, controller, guide = load_pouring_arm(settings["arm"], seed)
+        sim, controller, guide = load_pouring_arm(settings["arm"], seed, skill_version=skill_version)
+        guide_bytes = guide.encode("utf-8")
+        (root / "pouring-skill.md").write_bytes(guide_bytes)
+        manifest["skill_sha256"] = hashlib.sha256(guide_bytes).hexdigest()
+        save(root / "model_receipt.json", manifest)
+        last_tip = None
+        aim_pixel = None
         capture()
         initial = latest["overhead"]
         controls = controller(sim)
@@ -151,6 +178,8 @@ def run_episode(root, settings, seed, seed_from):
             pictures = dict(latest)
             if n > 1:
                 pictures["initial_overhead"] = initial
+            if last_tip is not None:
+                pictures["previous_tip_overhead_sequence"] = last_tip
             prompt = (f'Operate the simulated {settings["arm_label"]} robotic arm. Your goal is to transfer the yellow beads '
                       "from the blue cup to the orange cup, avoid spills, and leave both cups upright on the "
                       "table with the gripper released. Use the received images to locate the cups and assess "
@@ -189,12 +218,19 @@ def run_episode(root, settings, seed, seed_from):
             if act == "finish":
                 break
             update(phase="moving", caption=f"Executing {command}")
+            first_frame = status["seq"]
+            last_tip = None
             try:
                 answer = controls.execute(decision)
             except (ValueError, RuntimeError) as exc:
                 if sim._invalid_physics or sim._closed:
                     raise
                 answer = f"Robot controller: {exc}"
+            else:
+                if skill_version == "so101-pour-v2" and act == "align":
+                    aim_pixel = (decision["u"], decision["v"])
+                if skill_version == "so101-pour-v2" and act == "tip" and aim_pixel is not None:
+                    last_tip = tip_sequence(root, step_dir, aim_pixel, first_frame, status["seq"])
             event("result", answer)
             history.append(dict(command=command, observation=decision["observation"], feedback=answer))
             capture()
@@ -240,10 +276,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=MODEL)
     parser.add_argument("--arm", choices=ARM_LABELS, default=DEFAULT_ARM)
+    parser.add_argument("--skill-version", help="Pouring skill for this robot arm (defaults to its current skill).")
     parser.add_argument("--speed", default="standard")
     parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS, default=DEFAULT_REASONING_EFFORT)
     parser.add_argument("--seed-from", metavar="RUN_ID", help="Use the initial layout of this archived run.")
     parser.add_argument("--run-id", metavar="RUN_ID", help="Create a new run with this unique ID.")
     args = parser.parse_args()
     os.umask(0o077)
-    go(args.model, args.speed, args.seed_from, args.run_id, reasoning_effort=args.reasoning_effort, arm=args.arm)
+    go(args.model, args.speed, args.seed_from, args.run_id, reasoning_effort=args.reasoning_effort,
+       arm=args.arm, skill_version=args.skill_version)

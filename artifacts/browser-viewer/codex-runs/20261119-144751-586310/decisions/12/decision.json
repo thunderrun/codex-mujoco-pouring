@@ -1,0 +1,7 @@
+{
+  "observation": "The overhead view shows both cups upright, with yellow beads inside the orange cup and the open gripper clear of both cups.",
+  "action": "finish",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

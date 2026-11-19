@@ -1,0 +1,7 @@
+{
+  "observation": "The open gripper straddles the blue cup’s rim, and the wrist view shows yellow beads inside.",
+  "action": "grasp",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

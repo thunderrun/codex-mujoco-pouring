@@ -1,0 +1,7 @@
+{
+  "observation": "The bead-filled blue rim is centered near (325, 294), below and left of the orange rim near (368, 192).",
+  "action": "approach",
+  "u": 325,
+  "v": 294,
+  "angle": 0
+}

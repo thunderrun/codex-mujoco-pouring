@@ -1,0 +1,7 @@
+{
+  "observation": "The blue cup is upright with its lip above the right edge of the orange opening, and the yellow beads are still inside the blue cup.",
+  "action": "tip",
+  "u": 0,
+  "v": 0,
+  "angle": 60
+}

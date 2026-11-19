@@ -9,11 +9,12 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from arm_config import ARM_LABELS
+from arm_config import ARM_LABELS, LEGACY_SKILL
 from codex_feed import RUNS
 
 RUN_ID = re.compile(r"[0-9]{8}-[0-9]{6}-[0-9]{6}")
 FILENAME = "run-history.json"
+HISTORY_VERSION = 4
 
 
 def read_json(path):
@@ -131,6 +132,7 @@ def summarize(folder):
         "completed_at": timing.get("completed_at"), "graded_at": graded,
         "duration_seconds": duration, "duration_scope": duration_scope, "duration_source": timing.get("source"),
         "arm": arm, "arm_label": ARM_LABELS.get(arm, arm),
+        "skill_version": settings.get("skill_version") or LEGACY_SKILL.get(arm),
         "phase": phase, "task": settings.get("task", "pouring").lower(),
         "model": settings.get("model"), "speed": settings.get("speed", "standard"),
         "reasoning_effort": effort, "layout_reference_run": settings.get("layout_reference_run"),
@@ -158,7 +160,8 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
         for record in records.values():
             arm = record.setdefault("arm", "yam")
             record["arm_label"] = ARM_LABELS.get(arm, arm)
-        if full or old.get("version") != 3:
+            record.setdefault("skill_version", LEGACY_SKILL.get(arm))
+        if full or old.get("version") != HISTORY_VERSION:
             folders = [p for p in runs.iterdir() if RUN_ID.fullmatch(p.name) and p.is_dir()]
         else:
             # Running episodes need crash reconciliation, plus completed episodes
@@ -176,7 +179,7 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
             entry = summarize(item)
             if entry:
                 records[item.name] = entry
-        history = {"version": 3, "runs": [records[key] for key in sorted(records, reverse=True)]}
+        history = {"version": HISTORY_VERSION, "runs": [records[key] for key in sorted(records, reverse=True)]}
         if old != history:
             with tempfile.NamedTemporaryFile("w", dir=runs, prefix=".run-history-", delete=False) as tmp:
                 name = tmp.name
