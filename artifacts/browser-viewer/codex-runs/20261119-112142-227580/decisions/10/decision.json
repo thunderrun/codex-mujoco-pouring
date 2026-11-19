@@ -1,0 +1,7 @@
+{
+  "observation": "The left view shows the gripper holding the upright blue cup at table level.",
+  "action": "release",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

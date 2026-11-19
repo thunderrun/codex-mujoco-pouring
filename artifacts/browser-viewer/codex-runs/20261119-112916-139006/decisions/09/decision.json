@@ -1,0 +1,7 @@
+{
+  "observation": "The front view shows the gripper holding the blue cup upright, and the wrist view shows beads inside the orange cup and on the table beside it.",
+  "action": "return",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

@@ -1,0 +1,7 @@
+{
+  "observation": "The left view shows both cups upright and the gripper clear of the blue cup, with spilled beads between the cups.",
+  "action": "park",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

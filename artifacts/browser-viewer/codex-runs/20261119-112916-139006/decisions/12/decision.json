@@ -1,0 +1,7 @@
+{
+  "observation": "Both cups are upright and the open gripper is clear. The blue cup appears empty, with some beads in the orange cup and others scattered on the table.",
+  "action": "finish",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

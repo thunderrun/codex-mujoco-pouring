@@ -1,0 +1,7 @@
+{
+  "observation": "The tilted blue cup appears empty, with yellow beads visible on the table beside the orange cup.",
+  "action": "upright",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

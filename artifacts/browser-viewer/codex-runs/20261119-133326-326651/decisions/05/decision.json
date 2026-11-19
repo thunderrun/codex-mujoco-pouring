@@ -1,0 +1,7 @@
+{
+  "observation": "The front view shows the blue cup held upright just above the left edge of the orange cup’s opening.",
+  "action": "tip",
+  "u": 0,
+  "v": 0,
+  "angle": 65
+}

@@ -1,0 +1,7 @@
+{
+  "observation": "Both cups are upright, the gripper is open, and yellow beads are visible in the orange cup and on the table between the cups.",
+  "action": "park",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

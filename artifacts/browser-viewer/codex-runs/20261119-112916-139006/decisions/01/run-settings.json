@@ -1,0 +1,7 @@
+{
+  "model": "gpt-6.2-astra",
+  "speed": "standard",
+  "speed_label": "Standard",
+  "service_tier": "default",
+  "reasoning_effort": "medium"
+}

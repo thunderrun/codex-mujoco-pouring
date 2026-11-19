@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#121715">
+  <title>Pouring · MuJoCo cameras</title>
+  <style>
+    :root { color-scheme: dark; font: 16px/1.45 Inter, "DejaVu Sans", sans-serif; background: #121715; color: #f0f4ee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1600px; margin: auto; padding: clamp(16px, 3.2vw, 46px); }
+    header, footer, .details, .telemetry { display: flex; align-items: center; }
+    header { justify-content: space-between; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 22px; }
+    h1 { font-size: clamp(27px, 3.3vw, 44px); line-height: 1.15; font-weight: 650; margin: 0 0 4px; letter-spacing: -.04em; }
+    .details { color: #a5b1a6; font-size: .9rem; }
+    .telemetry { gap: 14px; flex-wrap: wrap; }
+    .state { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: .88rem; }
+    .state::before { content: ""; width: .52rem; height: .52rem; border-radius: 50%; background: #b0b7ad; }
+    .state:is([data-phase="running"], [data-phase="moving"], [data-phase="thinking"])::before { background: #83eead; box-shadow: 0 0 9px #83eead60; }
+    .state[data-phase="error"]::before, .state[data-phase="offline"]::before { background: #f4a272; }
+    .clock { border-left: 1px solid #435247; padding-left: 14px; color: #adb8af; font-size: .88rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .clock strong { color: #e0e9e0; font-weight: 500; }
+    .toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-bottom: 14px; }
+    .launcher { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+    .launcher label { display: grid; gap: 3px; color: #b8c8bd; font-size: .75rem; }
+    .launcher select { font-family: inherit; font-size: .88rem; font-weight: 500; line-height: 1.3; color: #edf4ef; border: 1px solid #4b5c51; border-radius: 5px; background: #202923; padding: 6px 9px; min-height: 35px; }
+    #startRun { border: 0; border-radius: 5px; background: #b9edca; color: #112517; padding: 7px 15px; min-height: 35px; font: inherit; font-weight: 650; font-size: .88rem; cursor: pointer; }
+    #startRun:disabled { opacity: .52; cursor: default; }
+    #launchMessage { margin: 0 0 10px; color: #bbd2bf; font-size: .84rem; }
+    #runHistory { margin-top: 26px; }
+    .history-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .history-head h2 { margin: 0; font-size: 1.12rem; }
+    #runHistory a { color: #b9dfc5; font-size: .86rem; text-underline-offset: 3px; }
+    .history-scroll { overflow-x: auto; border: 1px solid #3b473e; border-radius: 6px; }
+    .history-scroll:focus-visible { outline: 2px solid #b2f8cc; }
+    .history-scroll table { width: 100%; border-collapse: collapse; text-align: left; font-size: .86rem; font-variant-numeric: tabular-nums; }
+    .history-scroll th, .history-scroll td { padding: 9px 12px; white-space: nowrap; }
+    .history-scroll th { background: #202923; color: #bbcabf; font-weight: 550; font-size: .78rem; }
+    .history-scroll tbody tr + tr { border-top: 1px solid #303d34; }
+    .history-score { font-weight: 650; color: #c4edd1; }
+    .history-message { margin: .5rem 0; color: #b2bfb5; font-size: .86rem; }
+    .feeds { display: inline-flex; gap: 2px; border: 1px solid #36463b; background: #19201b; border-radius: 5px; padding: 2px; }
+    .feeds a { color: #bdcbc0; text-decoration: none; padding: 5px 12px; border-radius: 3px; font-size: .84rem; }
+    .feeds a[aria-current="page"] { background: #34483b; color: #e5f5e9; }
+    .cameras { display: grid; grid-template-columns: minmax(0, 3.12fr) minmax(0, 1fr); grid-template-rows: repeat(3, 1fr); gap: 8px; }
+    .camera { position: relative; display: block; overflow: hidden; padding: 0; border: 1px solid #3b473e; background: #202823; border-radius: 6px; color: #fff; cursor: pointer; aspect-ratio: 4/3; width: 100%; min-width: 0; align-self: stretch; }
+    .camera[aria-pressed="true"] { grid-area: 1 / 1 / 4 / 2; aspect-ratio: auto; border-color: #627669; cursor: default; }
+    .camera[aria-pressed="false"] { grid-column: 2; }
+    .camera:hover { border-color: #8ea998; }
+    button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #b2f8cc; outline-offset: 2px; }
+    .camera img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+    .label { position: absolute; bottom: 8px; left: 8px; padding: 3px 8px; border-radius: 3px; background: #111813db; color: #f5f9f6; font: 500 .8rem/1.4 Inter, "DejaVu Sans", sans-serif; }
+    .camera[aria-pressed="true"] .label { bottom: 12px; left: 12px; }
+    footer { justify-content: space-between; align-items: flex-start; gap: 16px; padding-top: 16px; flex-wrap: wrap; }
+    .description { min-width: 0; flex: 1 1 270px; }
+    #caption { margin: 4px 0; color: #d4ded5; }
+    #outcome { display: block; margin: 4px 0; color: #c4edd1; }
+    .actions { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+    .actions a { color: #afc4b6; font-size: .86rem; text-underline-offset: 3px; }
+    #again { color: #112517; background: #b9edca; border: 0; padding: 8px 13px; border-radius: 5px; font-family: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+    #again:disabled { opacity: .65; cursor: wait; }
+    [hidden] { display: none !important; }
+
+    .workspace.codex { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(318px, 1fr); gap: 16px; align-items: stretch; }
+    #console { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid #3b473e; border-radius: 7px; background: #101612; }
+    .console-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 10px; padding: 12px 14px; border-bottom: 1px solid #344037; }
+    .console-head h2 { margin: 0; font-size: 1.06rem; font-weight: 650; }
+    #model { color: #acc2b3; font-size: .77rem; }
+    .log-shell { flex: 1; min-height: 0; position: relative; }
+    #events { position: absolute; inset: 0; margin: 0; overflow: auto; overscroll-behavior: contain; padding: 0 14px; list-style: none; scrollbar-color: #475a4c transparent; }
+    #events:empty::after { display: block; padding: 14px 0; color: #9eb1a2; content: "Waiting for run output…"; font-size: .84rem; }
+    .entry { padding: 10px 0 11px; border-bottom: 1px solid #253229; overflow-wrap: anywhere; }
+    .entry:last-child { border: 0; }
+    .entry-head { display: flex; align-items: baseline; gap: 10px; font-size: .72rem; color: #9cb1a1; }
+    .entry-head strong { color: #ceddd1; font-weight: 650; }
+    .entry[data-kind="codex"] strong { color: #b2eec6; }
+    .entry[data-kind="command"] strong { color: #a4d4ef; }
+    .entry[data-kind="error"] strong { color: #ffba95; }
+    .entry time { font-variant-numeric: tabular-nums; }
+    .entry p { margin: 3px 0 0; white-space: pre-wrap; font-size: .88rem; line-height: 1.45; }
+    .entry[data-kind="command"] p { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; font-size: .79rem; }
+    #decision { font-size: .85rem; color: #bbd2bf; }
+    @media (max-width: 850px) {
+      .workspace.codex { grid-template-columns: 1fr; }
+      #console { min-height: 290px; height: 43svh; max-height: 460px; }
+    }
+    @media (max-width: 740px) {
+      main { padding: 16px 12px; }
+      header { margin-bottom: 14px; }
+      .cameras { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 5px; }
+      .camera[aria-pressed="true"] { grid-area: 1 / 1 / 2 / 4; aspect-ratio: 4/3; }
+      .camera[aria-pressed="false"] { grid-column: auto; grid-row: 2; }
+      .label { bottom: 4px; left: 4px; font-size: .69rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1 id="title">Pouring</h1><div class="details">I2RT YAM &nbsp;·&nbsp; MuJoCo</div></div>
+      <div class="telemetry">
+        <span id="decision" hidden></span>
+        <span id="state" class="state" data-phase="loading" role="status">Connecting</span>
+        <span class="clock">Simulation <strong id="time">0.0 s</strong></span>
+      </div>
+    </header>
+    <div class="toolbar">
+      <nav class="feeds" aria-label="Camera feed"><a href="/" id="codexFeed">Codex run</a><a href="/?view=demo" id="demoFeed">Motion demo</a><a href="/?view=gateway" id="gatewayFeed" hidden>API cameras</a></nav>
+      <form id="launcher" class="launcher" aria-label="Start a Codex run" hidden>
+        <label for="nextModel">Model<select id="nextModel" name="model" disabled></select></label>
+        <label for="nextSpeed">Inference speed<select id="nextSpeed" name="speed" disabled></select></label>
+        <label for="nextEffort">Reasoning effort<select id="nextEffort" name="reasoning_effort" disabled></select></label>
+        <button type="submit" id="startRun" disabled>Start run</button>
+      </form>
+    </div>
+    <p id="launchMessage" role="status" hidden></p>
+
+    <div class="workspace" id="workspace">
+      <section id="cameras" class="cameras" aria-label="Choose the main camera"></section>
+      <aside id="console" aria-labelledby="console-title" hidden>
+        <div class="console-head"><h2 id="console-title">Codex output</h2><span id="model"></span></div>
+        <div class="log-shell"><ol id="events" aria-label="Run output" role="log" aria-relevant="additions text" tabindex="0"></ol></div>
+      </aside>
+    </div>
+    <footer>
+      <div class="description">
+        <p id="caption" aria-live="polite">Connecting to the cameras…</p>
+        <output id="outcome" hidden></output>
+      </div>
+      <div class="actions">
+        <a href="/codex-run.mp4" id="recording" target="_blank" rel="noopener" hidden>Watch this run</a>
+        <a href="/button.mp4" id="buttonRecording" hidden>Watch recorded button test</a>
+        <button type="button" id="again" hidden>Run again</button>
+      </div>
+    </footer>
+    <section id="runHistory" aria-labelledby="history-title" hidden>
+      <div class="history-head">
+        <h2 id="history-title">Run history</h2>
+        <a href="/api/history" target="_blank" rel="noopener">View JSON</a>
+      </div>
+      <div id="historyScroll" class="history-scroll" role="region" aria-label="Saved runs" tabindex="0" hidden>
+        <table aria-labelledby="history-title">
+          <thead><tr><th scope="col">Started</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table>
+      </div>
+      <p id="historyMessage" class="history-message" role="status">Loading saved runs…</p>
+    </section>
+  </main>
+  <script>
+    const cameras = { front: "Front", overhead: "Overhead", left: "Left", wrist: "Wrist" };
+    const views = new Map();
+    const stage = document.querySelector("#cameras");
+    const badge = document.querySelector("#state");
+    const caption = document.querySelector("#caption");
+    const outcome = document.querySelector("#outcome");
+    const replay = document.querySelector("#again");
+    const recording = document.querySelector("#recording");
+    const requestedView = new URLSearchParams(location.search).get("view");
+    const viewName = ["demo", "gateway"].includes(requestedView) ? requestedView : "codex";
+    const isCodex = viewName === "codex";
+    const isDemo = viewName === "demo";
+    const gateway = viewName === "gateway";
+    document.querySelector("#" + viewName + "Feed").setAttribute("aria-current", "page");
+    document.querySelector("#workspace").classList.toggle("codex", isCodex);
+    document.querySelector("#console").hidden = !isCodex;
+    const launcher = document.querySelector("#launcher");
+    const nextModel = document.querySelector("#nextModel");
+    const nextSpeed = document.querySelector("#nextSpeed");
+    const nextEffort = document.querySelector("#nextEffort");
+    const startRun = document.querySelector("#startRun");
+    const launchMessage = document.querySelector("#launchMessage");
+    const historyRows = document.querySelector("#historyRows");
+    const historyMessage = document.querySelector("#historyMessage");
+    const historyScroll = document.querySelector("#historyScroll");
+    document.querySelector("#runHistory").hidden = !isCodex;
+    launcher.hidden = !isCodex;
+    let modelOptions = [];
+    let defaultSpeed = "";
+    let defaultEffort = "";
+    let historyKey;
+    let loadingHistory = false;
+    let nextHistoryFetch = 0;
+    let replayAvailable;
+    let currentRun;
+    let phase;
+    let submitting = false;
+    let operatorBusy = false;
+    let conflictUntil = 0;
+    let pendingRun = null;
+    let loadingOptions = false;
+    let nextOptionsFetch = 0;
+
+    function message(text) {
+      launchMessage.textContent = text;
+      launchMessage.hidden = !text;
+    }
+    function selectChoices(select, choices, preferred) {
+      select.replaceChildren(...choices.map(item => new Option(item.label, item.id)));
+      select.value = choices.some(item => item.id === preferred) ? preferred : (choices[0]?.id || "");
+    }
+    function updateModelChoices(preferredSpeed, preferredEffort) {
+      const model = modelOptions.find(item => item.id === nextModel.value);
+      const speeds = model?.speeds || [];
+      const efforts = model?.reasoning_efforts || [];
+      selectChoices(nextSpeed, speeds, speeds.some(item => item.id === preferredSpeed) ? preferredSpeed : defaultSpeed);
+      selectChoices(nextEffort, efforts, efforts.some(item => item.id === preferredEffort) ? preferredEffort : defaultEffort);
+      updateLaunch();
+    }
+    function updateLaunch() {
+      nextModel.disabled = submitting || !modelOptions.length;
+      nextSpeed.disabled = submitting || !nextSpeed.options.length;
+      nextEffort.disabled = submitting || !nextEffort.options.length;
+      const available = ["ready", "finished", "error"].includes(phase);
+      startRun.disabled = submitting || !!pendingRun || operatorBusy || Date.now() < conflictUntil || !available || !nextSpeed.value || !nextEffort.value;
+      startRun.textContent = submitting || pendingRun ? "Starting…" : "Start run";
+    }
+    const runDate = new Intl.DateTimeFormat(undefined, {dateStyle:"medium", timeStyle:"short"});
+    const modelNames = { "gpt-6.2-sol": "GPT-6.2 Sol", "gpt-6.2-astra": "GPT-6.2 Astra" };
+    const historyPhases = { running:"Running", finished:"Finished", error:"Error", interrupted:"Interrupted" };
+    function settingLabel(value) {
+      if (!value) return "—";
+      return value === "xhigh" ? "Extra high" : value[0].toUpperCase() + value.slice(1);
+    }
+    function renderHistory(runs) {
+      const key = JSON.stringify(runs);
+      if (historyKey !== key) {
+        const rows = runs.map(run => {
+          const row = document.createElement("tr");
+          const started = Date.parse(run.started_at);
+          const stamp = Number.isFinite(started) ? runDate.format(started) : "—";
+          const counts = run.metrics || {};
+          const beads = Number.isFinite(counts.beads_in_target) && Number.isFinite(counts.beads_total)
+            ? counts.beads_in_target + " / " + counts.beads_total : "—";
+          const score = Number.isFinite(run.score) ? run.score.toFixed(1) : "—";
+          const status = historyPhases[run.phase] || run.phase || "—";
+          for (const value of [stamp, modelNames[run.model] || run.model || "—",
+              settingLabel(run.reasoning_effort), settingLabel(run.speed), score, beads, status]) {
+            row.insertCell().textContent = value;
+          }
+          row.cells[4].className = "history-score";
+          const cell = row.insertCell();
+          if (run.replay_url && run.replay_url === "/runs/" + run.run_id + "/replay.mp4") {
+            const link = document.createElement("a");
+            link.href = run.replay_url;
+            link.target = "_blank";
+            link.rel = "noopener";
+            link.textContent = "Watch";
+            link.setAttribute("aria-label", "Watch " + (modelNames[run.model] || run.model) + " run from " + stamp);
+            cell.append(link);
+          } else {
+            cell.textContent = "—";
+          }
+          return row;
+        });
+        historyRows.replaceChildren(...rows);
+        historyKey = key;
+      }
+      historyScroll.hidden = !runs.length;
+      historyMessage.textContent = runs.length ? "" : "No runs saved yet.";
+      historyMessage.hidden = !!runs.length;
+    }
+    async function refreshHistory() {
+      if (loadingHistory) return;
+      loadingHistory = true;
+      try {
+        const response = await fetch("/api/history", {cache:"no-store"});
+        if (!response.ok) throw Error("history");
+        const {runs} = await response.json();
+        if (!Array.isArray(runs)) throw Error("history");
+        renderHistory(runs);
+        nextHistoryFetch = Date.now() + (runs.some(run => run.phase === "running") ? 5000 : 30000);
+      } catch {
+        historyMessage.hidden = false;
+        historyMessage.textContent = "Could not refresh run history. Retrying…";
+        nextHistoryFetch = Date.now() + 3000;
+      } finally {
+        loadingHistory = false;
+      }
+    }
+    async function refreshOptions() {
+      if (loadingOptions) return;
+      loadingOptions = true;
+      nextOptionsFetch = Date.now() + 30000;
+      try {
+        const response = await fetch("/api/options", { cache: "no-store" });
+        if (!response.ok) throw Error("options");
+        const options = await response.json();
+        document.querySelector("#gatewayFeed").hidden = options.capabilities?.gateway === false;
+        document.querySelector("#buttonRecording").hidden = options.capabilities?.button_recording === false;
+        if (!Array.isArray(options.models) || !options.models.length) throw Error("models");
+        const selectedModel = nextModel.value || options.default_model;
+        const selectedSpeed = nextSpeed.value || options.default_speed;
+        const selectedEffort = nextEffort.value || options.default_reasoning_effort;
+        modelOptions = options.models;
+        defaultSpeed = options.default_speed;
+        defaultEffort = options.default_reasoning_effort;
+        operatorBusy = options.busy === true;
+        if (operatorBusy && ["ready", "finished", "error"].includes(phase)) nextOptionsFetch = Date.now() + 1500;
+        selectChoices(nextModel, modelOptions, selectedModel);
+        updateModelChoices(selectedSpeed, selectedEffort);
+        if (launchMessage.dataset.source === "options") {
+          message("");
+          delete launchMessage.dataset.source;
+        }
+      } catch {
+        if (isCodex && !modelOptions.length) {
+          launchMessage.dataset.source = "options";
+          message("Waiting for run settings…");
+        }
+        nextOptionsFetch = Date.now() + 3000;
+      } finally {
+        loadingOptions = false;
+      }
+    }
+    nextModel.addEventListener("change", () => updateModelChoices(nextSpeed.value, nextEffort.value));
+    launcher.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!isCodex || startRun.disabled || submitting || pendingRun) return;
+      submitting = true;
+      const previousRun = currentRun;
+      updateLaunch();
+      message("Starting the selected run…");
+      try {
+        const response = await fetch("/api/runs", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: nextModel.value, speed: nextSpeed.value, reasoning_effort: nextEffort.value, layout: "previous" })
+        });
+        if (response.status === 409) {
+          operatorBusy = true;
+          conflictUntil = Date.now() + 2000;
+          nextOptionsFetch = Date.now() + 1500;
+          message("A run is already in progress.");
+          return;
+        }
+        if (!response.ok) {
+          const problem = await response.json().catch(() => ({}));
+          throw Error(problem.message || problem.error || "The run could not start.");
+        }
+        if (currentRun !== previousRun) message("");
+        else pendingRun = { previousRun, expires: Date.now() + 20000 };
+      } catch (err) {
+        message(err.message || "The run could not start.");
+      } finally {
+        submitting = false;
+        updateLaunch();
+      }
+    });
+    const phases = { starting: "Starting", loading: "Loading", thinking: "Codex working", moving: "Arm moving", running: "Live", ready: "Ready", finished: "Finished", error: "Stopped" };
+    const eventLabels = { system: "Run", codex: "Codex", command: "Command", result: "Result", error: "Error" };
+    const eventRows = new Map();
+    const log = document.querySelector("#events");
+    const decision = document.querySelector("#decision");
+    const clock = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    let logRun;
+    let eventSource;
+    let lastEventId = 0;
+    function connectOutput() {
+      if (eventSource || !window.EventSource) return;
+      eventSource = new EventSource("/api/events?after=" + lastEventId);
+      const receive = message => {
+        try {
+          const event = JSON.parse(message.data);
+          renderEvents([event]);
+        } catch { /* A status snapshot will recover an interrupted message. */ }
+      };
+      eventSource.onmessage = receive;
+      eventSource.addEventListener("output", receive);
+    }
+    function renderOutput(state) {
+      const changedRun = currentRun !== state.run_id;
+      const ended = ["ready", "finished", "error"].includes(state.phase) && phase !== state.phase;
+      currentRun = state.run_id;
+      phase = state.phase;
+      if (pendingRun && (pendingRun.previousRun !== currentRun || Date.now() > pendingRun.expires)) {
+        const started = pendingRun.previousRun !== currentRun;
+        pendingRun = null;
+        message(started ? "" : "Run startup has not been confirmed.");
+      }
+      updateLaunch();
+      if (changedRun || ended || replayAvailable !== state.replay_ready) refreshHistory();
+      replayAvailable = state.replay_ready;
+      if (changedRun || ended || Date.now() >= nextOptionsFetch) refreshOptions();
+      const currentModel = modelOptions.find(item => item.id === state.model);
+      const model = currentModel?.label ||
+        modelNames[state.model] || state.model;
+      const speed = state.speed_label || ({ standard: "Standard", fast: "Fast", ultrafast: "Ultrafast" }[state.speed] || "Standard");
+      const savedEffort = String(state.reasoning_effort || state.reasoning || "").toLowerCase();
+      const effort = savedEffort === "standard" ? "medium" : savedEffort;
+      const effortLabel = currentModel?.reasoning_efforts?.find(item => item.id === effort)?.label || effort;
+      const reasoning = effortLabel ? effortLabel + " reasoning" : "";
+      document.querySelector("#model").textContent = [model, speed, reasoning].filter(Boolean).join(" · ");
+      decision.hidden = !(Number(state.decision) > 0);
+      if (!decision.hidden) decision.textContent = "Decision " + state.decision;
+      if (logRun !== state.run_id) {
+        log.replaceChildren();
+        eventRows.clear();
+        if (eventSource) eventSource.close();
+        eventSource = null;
+        lastEventId = 0;
+        logRun = state.run_id;
+      }
+      renderEvents(state.events || []);
+      if (state.run_id != null) connectOutput();
+    }
+    function renderEvents(events) {
+      const follow = log.scrollHeight - log.scrollTop - log.clientHeight < 42;
+      let changed = false;
+      for (const e of events) {
+        if (e.id == null || typeof e.text !== "string") continue;
+        lastEventId = Math.max(lastEventId, Number(e.id) || 0);
+        let row = eventRows.get(e.id);
+        if (!row) {
+          const li = document.createElement("li");
+          li.className = "entry";
+          li.dataset.kind = e.kind;
+          const header = document.createElement("div");
+          header.className = "entry-head";
+          const label = document.createElement("strong");
+          label.textContent = eventLabels[e.kind] || "Run";
+          const time = document.createElement("time");
+          const rawTime = e.time || "";
+          const date = new Date(rawTime);
+          time.textContent = Number.isFinite(date.getTime()) ? clock.format(date) : String(rawTime);
+          header.append(label, time);
+          row = document.createElement("p");
+          li.append(header, row);
+          log.append(li);
+          eventRows.set(e.id, row);
+          changed = true;
+        }
+        if (row.textContent !== e.text && !row.textContent.startsWith(e.text)) {
+          row.textContent = e.text;
+          changed = true;
+        }
+      }
+      if (changed && follow) log.scrollTop = log.scrollHeight;
+    }
+    let displayed = null;
+    let requestingReplay = false;
+
+    for (const [name, label] of Object.entries(cameras)) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "camera";
+      button.setAttribute("aria-label", label + " camera");
+      button.setAttribute("aria-pressed", String(name === "front"));
+      const tag = document.createElement("span");
+      tag.className = "label";
+      tag.textContent = label;
+      button.append(tag);
+      button.addEventListener("click", () => {
+        for (const [key, view] of views) {
+          view.button.setAttribute("aria-pressed", String(key === name));
+        }
+      });
+      stage.append(button);
+      views.set(name, { button, image: null });
+    }
+
+    function setCaption(message) {
+      if (caption.textContent !== message) caption.textContent = message;
+    }
+    function setPhase(phase, label) {
+      badge.dataset.phase = phase;
+      if (badge.textContent !== label) badge.textContent = label;
+    }
+    function loadCamera(name, suffix) {
+      return new Promise((resolve, reject) => {
+        const next = new Image();
+        next.alt = "";
+        next.onload = () => resolve([name, next]);
+        next.onerror = reject;
+        next.src = "/frame/" + name + ".jpg?" + suffix;
+      });
+    }
+    async function poll() {
+      try {
+        const response = await fetch("/api/status?view=" + viewName, { cache: "no-store" });
+        if (!response.ok) throw Error("status");
+        const state = await response.json();
+        if (isCodex) renderOutput(state);
+        setPhase(state.phase, phases[state.phase] || "Connected");
+        const seconds = Number(state.sim_time);
+        if (Number.isFinite(seconds)) document.querySelector("#time").textContent = seconds.toFixed(1) + " s";
+        setCaption(state.caption || (gateway ? "Latest camera observations requested through the robot API." : isDemo ? "Scripted simulation." : "Waiting for Codex…"));
+        const result = typeof state.result === "string" ? state.result.replace(/(\d+) spilled$/, "$1 recorded as spilled during the run") : "";
+        if (outcome.textContent !== result) outcome.textContent = result;
+        outcome.hidden = !result;
+        recording.hidden = !isCodex || !state.replay_ready;
+        replay.hidden = !isDemo || !state.can_replay;
+        replay.disabled = requestingReplay;
+        const params = new URLSearchParams({ view: viewName, s: state.seq, run: state.run_id });
+        const suffix = params.toString();
+        if (displayed !== suffix && state.seq != null && (state.seq > 0 || gateway && state.seq === 0)) {
+          const frames = await Promise.allSettled([...views.keys()].map(name => loadCamera(name, suffix)));
+          for (const frame of frames) {
+            if (frame.status !== "fulfilled") continue;
+            const [name, image] = frame.value;
+            const view = views.get(name);
+            if (view.image) view.image.replaceWith(image);
+            else view.button.prepend(image);
+            view.image = image;
+          }
+          if (frames.every(frame => frame.status === "fulfilled")) displayed = suffix;
+        }
+      } catch {
+        phase = "offline";
+        updateLaunch();
+        setPhase("offline", "Reconnecting");
+        setCaption("Waiting for the local simulator…");
+        replay.hidden = true;
+      } finally {
+        if (isCodex && Date.now() >= nextHistoryFetch) refreshHistory();
+        setTimeout(poll, document.hidden ? 900 : 125);
+      }
+    }
+    replay.addEventListener("click", async () => {
+      if (!isDemo || requestingReplay) return;
+      requestingReplay = true;
+      replay.disabled = true;
+      try {
+        const response = await fetch("/api/replay", { method: "POST" });
+        if (!response.ok) throw Error("replay");
+        displayed = null;
+      } catch {
+        setCaption("Could not restart the demonstration.");
+      } finally {
+        requestingReplay = false;
+      }
+    });
+    refreshOptions();
+    poll();
+  </script>
+</body>
+</html>

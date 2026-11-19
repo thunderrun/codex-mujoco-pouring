@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the blue cup upright above the table, and the orange cup’s rim is centered near (368, 192) in the overhead view.",
+  "action": "align",
+  "u": 368,
+  "v": 192,
+  "angle": 0
+}

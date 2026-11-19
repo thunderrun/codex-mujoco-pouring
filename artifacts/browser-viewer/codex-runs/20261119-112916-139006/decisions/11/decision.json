@@ -1,0 +1,7 @@
+{
+  "observation": "The open gripper is above the empty blue cup. Both cups stand upright, with several beads scattered between them.",
+  "action": "park",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

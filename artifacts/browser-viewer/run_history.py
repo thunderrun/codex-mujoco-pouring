@@ -1,0 +1,141 @@
+"""Persist a public, restartable index of the locally archived pouring episodes."""
+import fcntl
+import json
+import os
+import re
+import subprocess
+import tempfile
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+
+from codex_feed import RUNS
+
+RUN_ID = re.compile(r"[0-9]{8}-[0-9]{6}-[0-9]{6}")
+FILENAME = "run-history.json"
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return {}
+
+
+@contextmanager
+def runner_lease(folder):
+    # The kernel releases this lock even if the process dies before saving status.
+    with (folder / ".runner.lock").open("a") as lease:
+        fcntl.flock(lease, fcntl.LOCK_EX)
+        yield
+
+
+def is_active(folder):
+    try:
+        with (folder / ".runner.lock").open() as lease:
+            try:
+                fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return True
+            return False
+    except FileNotFoundError:
+        # Episodes already running when this index was introduced have no lease.
+        if (folder.parent / "current").resolve() != folder.resolve():
+            return False
+        pid = subprocess.run(["systemctl", "--user", "show", "robo-mj-codex-selected.service",
+                              "-p", "MainPID", "--value"], capture_output=True,
+                             text=True, timeout=3).stdout.strip()
+        if not pid.isdecimal() or pid == "0":
+            return False
+        try:
+            return folder.name.encode() in Path("/proc", pid, "cmdline").read_bytes().split(b"\0")
+        except FileNotFoundError:
+            return False
+
+
+def summarize(folder):
+    manifest = read_json(folder / "model_receipt.json")
+    status = read_json(folder / "status.json")
+    if not status and not manifest:
+        return None
+    settings = {**manifest, **status}
+    events = status.get("events", [])
+    first_event = events[0].get("time") if events else None
+    started = manifest.get("started_at") or first_event
+    if not started:
+        started = datetime.strptime(folder.name, "%Y%m%d-%H%M%S-%f").astimezone().isoformat()
+    phase = status.get("phase")
+    result = status.get("result")
+    finished = status.get("finished_at")
+    if phase in ("finished", "error"):
+        finished = finished or (events[-1].get("time") if events else None)
+    elif is_active(folder):
+        phase = "running"
+    else:
+        phase = "interrupted"
+        result = result or "The runner stopped before recording a final outcome."
+    grading = read_json(folder / "private" / "grading.json")
+    verification = read_json(folder / "verification.json")
+    effort = settings.get("reasoning_effort")
+    if not effort and status.get("reasoning") == "Standard":
+        effort = "medium"  # Original Sol viewer used this display label for medium.
+    return {
+        "run_id": folder.name, "started_at": started, "finished_at": finished,
+        "phase": phase, "task": settings.get("task", "pouring").lower(),
+        "model": settings.get("model"), "speed": settings.get("speed", "standard"),
+        "reasoning_effort": effort, "layout_reference_run": settings.get("layout_reference_run"),
+        "decision_count": verification.get("decision_count", status.get("decision", 0)),
+        "result": result, "score": grading.get("score"), "success": grading.get("success"),
+        "metrics": grading.get("metrics", {}), "sim_seconds": grading.get("sim_time"),
+        "verified": verification.get("verified"),
+        "replay_url": f"/runs/{folder.name}/replay.mp4" if (folder / "replay.mp4").is_file() else None,
+    }
+
+
+def sync_history(runs=RUNS, *, folder=None, full=False):
+    """Merge snapshots under a cross-process lock; leave older archived entries intact."""
+    runs.mkdir(exist_ok=True)
+    path = runs / FILENAME
+    with (runs / ".run-history.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            old = read_json(path)
+        except json.JSONDecodeError:
+            old = {}  # Rebuild from each episode's authoritative artifacts.
+        records = {r["run_id"]: r for r in old.get("runs", [])}
+        if full or not old:
+            folders = [p for p in runs.iterdir() if RUN_ID.fullmatch(p.name) and p.is_dir()]
+        else:
+            # Running episodes need crash reconciliation, plus completed episodes
+            # whose verification/export may have landed since the last snapshot.
+            folders = [runs / rid for rid, r in records.items()
+                       if r["phase"] == "running" or
+                       (r["phase"] == "finished" and (r["verified"] is None or not r["replay_url"]))]
+            if folder is not None:
+                folders.append(folder)
+            else:
+                current = (runs / "current").resolve()
+                if RUN_ID.fullmatch(current.name) and current.name not in records:
+                    folders.append(current)
+        for item in dict.fromkeys(folders):
+            entry = summarize(item)
+            if entry:
+                records[item.name] = entry
+        history = {"version": 1, "runs": [records[key] for key in sorted(records, reverse=True)]}
+        if old != history:
+            with tempfile.NamedTemporaryFile("w", dir=runs, prefix=".run-history-", delete=False) as tmp:
+                name = tmp.name
+                try:
+                    json.dump(history, tmp, ensure_ascii=False, indent=2, allow_nan=False)
+                    tmp.write("\n")
+                    tmp.flush()
+                    os.fsync(tmp.fileno())
+                    os.replace(name, path)
+                    fd = os.open(runs, os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                finally:
+                    Path(name).unlink(missing_ok=True)
+        return history
