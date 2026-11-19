@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlparse
 from PIL import Image
 from robo_mj_bench.tasks.registry import create_simulation
 
+from arm_config import ARM_LABELS
 from gateway import GatewayFeed
 import codex_feed
 import run_history
@@ -159,6 +160,9 @@ class Viewer(BaseHTTPRequestHandler):
             else:
                 state = codex_feed.snapshot()
                 state["replay_ready"] = (codex_feed.CURRENT / "replay.mp4").is_file()
+            if view in ("demo", "gateway") or state.get("run_id"):
+                arm = state.setdefault("arm", "yam")
+                state["arm_label"] = ARM_LABELS.get(arm, arm)
             self.reply(json.dumps(state).encode(), "application/json")
         elif parsed.path == "/api/events":
             self.stream_events(params)

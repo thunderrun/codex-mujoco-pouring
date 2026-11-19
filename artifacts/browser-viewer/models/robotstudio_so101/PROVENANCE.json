@@ -1,0 +1,10 @@
+{
+  "model": "robotstudio_so101",
+  "repository": "https://github.com/google-deepmind/mujoco_menagerie",
+  "commit": "0059d4335f8156206f63a35662313385f7ad6d74",
+  "path": "robotstudio_so101",
+  "license": "Apache-2.0",
+  "files": ["so101.xml", "assets/*.stl", "README.md", "CHANGELOG.md", "LICENSE"],
+  "source_environment": "https://huggingface.co/lerobot/so101-tabletop-mujoco",
+  "verification": "MJCF, meshes and upstream documentation match the git blobs at the stated Menagerie commit."
+}

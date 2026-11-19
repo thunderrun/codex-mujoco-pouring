@@ -6,5 +6,5 @@ MUJOCO_LOG.TXT
 .env
 .env.*
 private-runs/
-# The four published episodes are tracked explicitly. Future episodes stay local.
+# Published episodes are tracked explicitly. Future episodes stay local.
 /artifacts/browser-viewer/codex-runs/*

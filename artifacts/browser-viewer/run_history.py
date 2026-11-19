@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
+from arm_config import ARM_LABELS
 from codex_feed import RUNS
 
 RUN_ID = re.compile(r"[0-9]{8}-[0-9]{6}-[0-9]{6}")
@@ -79,8 +80,10 @@ def summarize(folder):
     effort = settings.get("reasoning_effort")
     if not effort and status.get("reasoning") == "Standard":
         effort = "medium"  # Original Sol viewer used this display label for medium.
+    arm = settings.get("arm", "yam")  # All runs predating arm selection used the YAM.
     return {
         "run_id": folder.name, "started_at": started, "finished_at": finished,
+        "arm": arm, "arm_label": ARM_LABELS.get(arm, arm),
         "phase": phase, "task": settings.get("task", "pouring").lower(),
         "model": settings.get("model"), "speed": settings.get("speed", "standard"),
         "reasoning_effort": effort, "layout_reference_run": settings.get("layout_reference_run"),
@@ -102,7 +105,10 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
             old = read_json(path)
         except json.JSONDecodeError:
             old = {}  # Rebuild from each episode's authoritative artifacts.
-        records = {r["run_id"]: r for r in old.get("runs", [])}
+        records = {r["run_id"]: dict(r) for r in old.get("runs", [])}
+        for record in records.values():
+            arm = record.setdefault("arm", "yam")
+            record["arm_label"] = ARM_LABELS.get(arm, arm)
         if full or not old:
             folders = [p for p in runs.iterdir() if RUN_ID.fullmatch(p.name) and p.is_dir()]
         else:

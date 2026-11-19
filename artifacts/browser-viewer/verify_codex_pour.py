@@ -7,9 +7,7 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
-from robo_mj_bench.tasks.registry import create_simulation
-
-from pour_controls import PourControls
+from pouring_arms import load_pouring_arm
 
 
 def load(path):
@@ -19,7 +17,8 @@ def load(path):
 def verify(directory):
     directory = directory.resolve()
     actual = load(directory / "private" / "grading.json")
-    seed = load(directory / "private" / "episode.json")["seed"]
+    episode = load(directory / "private" / "episode.json")
+    arm = episode.get("arm", "yam")  # The original archives predate arm selection.
     steps = sorted((directory / "decisions").glob("*/decision.json"))
     numbers = [int(step.parent.name) for step in steps]
     if not numbers or numbers != list(range(1, len(steps) + 1)):
@@ -34,9 +33,9 @@ def verify(directory):
             feedback.setdefault(event["decision"], event["text"])
     rejected = []
     feedback_matches = True
-    sim = create_simulation("pouring", seed)
+    sim, controller, _ = load_pouring_arm(arm, episode["seed"])
     try:
-        controls = PourControls(sim)
+        controls = controller(sim)
         for number, step in zip(numbers, steps):
             decision = load(step)
             if decision["action"] == "finish":
@@ -64,6 +63,7 @@ def verify(directory):
         "success_match": replay["success"] == actual["success"],
         "sim_time_match": replay["sim_time"] == actual["sim_time"],
         "scene_match": replay["scene_sha256"] == actual["scene_sha256"],
+        "robot_match": replay["robot"] == actual["robot"],
         "engine_version_match": mujoco.__version__ == actual["mujoco_version"],
         "controller_feedback_match": feedback_matches,
     }

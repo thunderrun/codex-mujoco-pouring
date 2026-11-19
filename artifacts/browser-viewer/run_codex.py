@@ -11,11 +11,11 @@ from datetime import datetime
 from pathlib import Path
 
 from PIL import Image, ImageDraw
-from robo_mj_bench.tasks.registry import create_simulation
 
+from arm_config import ARM_LABELS, DEFAULT_ARM
 from codex_actor import DEFAULT_REASONING_EFFORT, MODEL, REASONING_EFFORTS, decide, run_settings
 from codex_feed import CURRENT, RUNS, empty
-from pour_controls import GUIDE, PourControls
+from pouring_arms import load_pouring_arm
 from run_history import runner_lease, sync_history
 
 CAMERAS = ("front", "overhead", "left", "wrist")
@@ -49,8 +49,11 @@ def checked_id(value):
 
 
 def go(model=MODEL, speed="standard", seed_from=None, run_id=None, *,
-       reasoning_effort=DEFAULT_REASONING_EFFORT):
+       reasoning_effort=DEFAULT_REASONING_EFFORT, arm=DEFAULT_ARM):
     settings = run_settings(model, speed, reasoning_effort)
+    if arm not in ARM_LABELS:
+        raise ValueError(f"Unknown pouring arm: {arm!r}")
+    settings.update(arm=arm, arm_label=ARM_LABELS[arm])
     run_id = checked_id(run_id or datetime.now().strftime("%Y%m%d-%H%M%S-%f"))
     RUNS.mkdir(exist_ok=True)
     if seed_from is None:
@@ -78,7 +81,7 @@ def run_episode(root, settings, seed, seed_from):
     manifest = dict(settings, run_id=run_id, task="pouring", started_at=created_at,
                     layout_reference_run=seed_from, decision_limit=DECISION_LIMIT)
     save(root / "model_receipt.json", manifest)
-    save(root / "private" / "episode.json", {"seed": seed, "layout_reference_run": seed_from})
+    save(root / "private" / "episode.json", {"seed": seed, "arm": settings["arm"], "layout_reference_run": seed_from})
     status = empty()
     status.update(settings)
     status.update(run_id=run_id, reasoning=settings["reasoning_effort"].capitalize(), phase="loading",
@@ -101,7 +104,7 @@ def run_episode(root, settings, seed, seed_from):
         update()
 
     event("system", f'Starting {model} · {settings["speed_label"]} speed · {settings["reasoning_effort"]} reasoning. '
-          'Four RGB cameras and robot joint encoders are available.')
+          f'Controlling {settings["arm_label"]} using four RGB cameras and joint encoders.')
     sim = None
     initial = None
     history = []
@@ -128,10 +131,10 @@ def run_episode(root, settings, seed, seed_from):
         with (root / "frames.jsonl").open("a") as index:
             index.write(json.dumps({"seq":status["seq"], "sim_time":status["sim_time"], "wall_time":time.time()}) + "\n")
     try:
-        sim = create_simulation("pouring", seed)
+        sim, controller, guide = load_pouring_arm(settings["arm"], seed)
         capture()
         initial = latest["overhead"]
-        controls = PourControls(sim)
+        controls = controller(sim)
         original_step = sim._step
         def camera_step():
             original_step()
@@ -146,13 +149,13 @@ def run_episode(root, settings, seed, seed_from):
             pictures = dict(latest)
             if n > 1:
                 pictures["initial_overhead"] = initial
-            prompt = ("Operate the simulated single YAM robotic arm. Your goal is to transfer the yellow beads "
+            prompt = (f'Operate the simulated {settings["arm_label"]} robotic arm. Your goal is to transfer the yellow beads '
                       "from the blue cup to the orange cup, avoid spills, and leave both cups upright on the "
                       "table with the gripper released. Use the received images to locate the cups and assess "
                       "each motion. The overhead view has original pixel numbers and 20-pixel grid lines; "
                       "x increases right, y increases down. The first overhead image from the episode, when "
                       "provided as a separate reference, can help if the arm obscures a cup. Give one command. "
-                      "State one concise public camera observation per decision.\n" + GUIDE +
+                      "State one concise public camera observation per decision.\n" + guide +
                       f"\nDecision {n} of {DECISION_LIMIT}. Robot command phase: {controls.phase}." +
                       "\nCurrent encoders: " + json.dumps(state) + "\nPrevious decisions: " + json.dumps(history))
             step_dir = root / "decisions" / f"{n:02d}"
@@ -229,10 +232,11 @@ def run_episode(root, settings, seed, seed_from):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=MODEL)
+    parser.add_argument("--arm", choices=ARM_LABELS, default=DEFAULT_ARM)
     parser.add_argument("--speed", default="standard")
     parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS, default=DEFAULT_REASONING_EFFORT)
     parser.add_argument("--seed-from", metavar="RUN_ID", help="Use the initial layout of this archived run.")
     parser.add_argument("--run-id", metavar="RUN_ID", help="Create a new run with this unique ID.")
     args = parser.parse_args()
     os.umask(0o077)
-    go(args.model, args.speed, args.seed_from, args.run_id, reasoning_effort=args.reasoning_effort)
+    go(args.model, args.speed, args.seed_from, args.run_id, reasoning_effort=args.reasoning_effort, arm=args.arm)

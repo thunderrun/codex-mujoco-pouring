@@ -1,0 +1,7 @@
+{
+  "observation": "The overhead view shows the orange cup’s top rim centered at (368, 192).",
+  "action": "align",
+  "u": 368,
+  "v": 192,
+  "angle": 0
+}

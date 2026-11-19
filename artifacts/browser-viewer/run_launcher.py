@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 
+from arm_config import ARM_LABELS, DEFAULT_ARM
 from codex_actor import DEFAULT_REASONING_EFFORT, MODEL_SPEEDS, REASONING_EFFORTS, SPEED_LABELS, run_settings
 from codex_feed import CURRENT, RUNS
 
@@ -46,12 +47,15 @@ def options():
         if not effort and st.get("reasoning") == "Standard":
             effort = "medium"  # The original viewer called its fixed medium effort "Standard".
         effort_label = next((choice["label"] for choice in effort_choices if choice["id"] == effort), None)
-        parts = [LABELS.get(st["model"], st["model"]), speed]
+        arm = st.get("arm", "yam")
+        parts = [ARM_LABELS.get(arm, arm), LABELS.get(st["model"], st["model"]), speed]
         if effort_label:
             parts.append(f"{effort_label} reasoning")
         label = " · ".join([*parts, date])
         recordings.append({"id": folder.name, "label": label, "url": f"/runs/{folder.name}/replay.mp4"})
     return {
+        "arms": [{"id": arm, "label": label} for arm, label in ARM_LABELS.items()],
+        "default_arm": DEFAULT_ARM,
         "models": [{"id": model, "label": label, "reasoning_efforts": effort_choices,
                     "speeds": [{"id": speed, "label": SPEED_LABELS[speed]} for speed in MODEL_SPEEDS[model]]}
                    for model, label in LABELS.items()],
@@ -62,10 +66,13 @@ def options():
 
 
 def launch(payload):
-    allowed = {"model", "speed", "layout", "reasoning_effort"}
+    allowed = {"arm", "model", "speed", "layout", "reasoning_effort"}
     if not isinstance(payload, dict) or not {"model", "speed"} <= payload.keys() <= allowed:
         raise ValueError("Invalid run settings. Select a model and speed to start a run.")
     model, speed = payload["model"], payload["speed"]
+    arm = payload.get("arm", DEFAULT_ARM)
+    if not isinstance(arm, str) or arm not in ARM_LABELS:
+        raise ValueError("Choose a supported robot arm.")
     effort = payload.get("reasoning_effort", DEFAULT_REASONING_EFFORT)
     run_settings(model, speed, effort)
     layout = payload.get("layout", "previous")
@@ -83,7 +90,7 @@ def launch(payload):
             args.append(f"--setenv=ROBO_MJ_BENCH_DIR={checkout}")
         args.extend("--setenv=" + name for name in ("HTTPS_PROXY","https_proxy") if os.environ.get(name))
         args.extend([sys.executable, "-B", str(HERE / "run_codex.py"), "--run-id", run_id,
-                     "--model", model, "--speed", speed, "--reasoning-effort", effort])
+                     "--arm", arm, "--model", model, "--speed", speed, "--reasoning-effort", effort])
         prev = CURRENT.resolve()
         if layout == "previous" and RUN_ID.fullmatch(prev.name) and (prev / "private/episode.json").is_file():
             args.extend(["--seed-from", prev.name])
@@ -94,7 +101,7 @@ def launch(payload):
             raise RuntimeError("The run service could not start.")
         # Wait for the data directory to become current so a returning page is
         # guaranteed to render the new selection on its very first refresh.
-        response = {"run_id": run_id, "model": model, "speed": speed, "reasoning_effort": effort}
+        response = {"run_id": run_id, "arm": arm, "model": model, "speed": speed, "reasoning_effort": effort}
         for _ in range(50):
             if CURRENT.resolve().name == run_id and (RUNS / run_id / "status.json").is_file():
                 return {**response, "message": "Run started."}

@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist camera shows the yellow beads still inside the upright blue cup.",
+  "action": "lift",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

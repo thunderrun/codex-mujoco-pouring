@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the yellow beads still inside the tilted blue cup, with the orange rim to its left.",
+  "action": "tip",
+  "u": 0,
+  "v": 0,
+  "angle": 90
+}

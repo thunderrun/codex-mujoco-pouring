@@ -98,7 +98,7 @@
 <body>
   <main>
     <header>
-      <div><h1 id="title">Pouring</h1><div class="details">I2RT YAM &nbsp;·&nbsp; MuJoCo</div></div>
+      <div><h1 id="title">Pouring</h1><div class="details" id="sceneDetails">MuJoCo</div></div>
       <div class="telemetry">
         <span id="decision" hidden></span>
         <span id="state" class="state" data-phase="loading" role="status">Connecting</span>
@@ -108,6 +108,7 @@
     <div class="toolbar">
       <nav class="feeds" aria-label="Camera feed"><a href="/" id="codexFeed">Codex run</a><a href="/?view=demo" id="demoFeed">Motion demo</a><a href="/?view=gateway" id="gatewayFeed" hidden>API cameras</a></nav>
       <form id="launcher" class="launcher" aria-label="Start a Codex run" hidden>
+        <label for="nextArm">Robot arm<select id="nextArm" name="arm" disabled></select></label>
         <label for="nextModel">Model<select id="nextModel" name="model" disabled></select></label>
         <label for="nextSpeed">Inference speed<select id="nextSpeed" name="speed" disabled></select></label>
         <label for="nextEffort">Reasoning effort<select id="nextEffort" name="reasoning_effort" disabled></select></label>
@@ -141,7 +142,7 @@
       </div>
       <div id="historyScroll" class="history-scroll" role="region" aria-label="Saved runs" tabindex="0" hidden>
         <table aria-labelledby="history-title">
-          <thead><tr><th scope="col">Started</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
+          <thead><tr><th scope="col">Started</th><th scope="col">Robot arm</th><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Speed</th><th scope="col">Score / 100</th><th scope="col">Beads in cup</th><th scope="col">Status</th><th scope="col">Replay</th></tr></thead>
           <tbody id="historyRows"></tbody>
         </table>
       </div>
@@ -166,6 +167,8 @@
     document.querySelector("#workspace").classList.toggle("codex", isCodex);
     document.querySelector("#console").hidden = !isCodex;
     const launcher = document.querySelector("#launcher");
+    const nextArm = document.querySelector("#nextArm");
+    const sceneDetails = document.querySelector("#sceneDetails");
     const nextModel = document.querySelector("#nextModel");
     const nextSpeed = document.querySelector("#nextSpeed");
     const nextEffort = document.querySelector("#nextEffort");
@@ -209,11 +212,12 @@
       updateLaunch();
     }
     function updateLaunch() {
+      nextArm.disabled = submitting || !nextArm.options.length;
       nextModel.disabled = submitting || !modelOptions.length;
       nextSpeed.disabled = submitting || !nextSpeed.options.length;
       nextEffort.disabled = submitting || !nextEffort.options.length;
       const available = ["ready", "finished", "error"].includes(phase);
-      startRun.disabled = submitting || !!pendingRun || operatorBusy || Date.now() < conflictUntil || !available || !nextSpeed.value || !nextEffort.value;
+      startRun.disabled = submitting || !!pendingRun || operatorBusy || Date.now() < conflictUntil || !available || !nextArm.value || !nextSpeed.value || !nextEffort.value;
       startRun.textContent = submitting || pendingRun ? "Starting…" : "Start run";
     }
     const runDate = new Intl.DateTimeFormat(undefined, {dateStyle:"medium", timeStyle:"short"});
@@ -235,11 +239,11 @@
             ? counts.beads_in_target + " / " + counts.beads_total : "—";
           const score = Number.isFinite(run.score) ? run.score.toFixed(1) : "—";
           const status = historyPhases[run.phase] || run.phase || "—";
-          for (const value of [stamp, modelNames[run.model] || run.model || "—",
+          for (const value of [stamp, run.arm_label || run.arm || "I2RT YAM", modelNames[run.model] || run.model || "—",
               settingLabel(run.reasoning_effort), settingLabel(run.speed), score, beads, status]) {
             row.insertCell().textContent = value;
           }
-          row.cells[4].className = "history-score";
+          row.cells[5].className = "history-score";
           const cell = row.insertCell();
           if (run.replay_url && run.replay_url === "/runs/" + run.run_id + "/replay.mp4") {
             const link = document.createElement("a");
@@ -247,7 +251,7 @@
             link.target = "_blank";
             link.rel = "noopener";
             link.textContent = "Watch";
-            link.setAttribute("aria-label", "Watch " + (modelNames[run.model] || run.model) + " run from " + stamp);
+            link.setAttribute("aria-label", "Watch " + (run.arm_label || run.arm || "I2RT YAM") + " with " + (modelNames[run.model] || run.model) + " from " + stamp);
             cell.append(link);
           } else {
             cell.textContent = "—";
@@ -289,7 +293,8 @@
         const options = await response.json();
         document.querySelector("#gatewayFeed").hidden = options.capabilities?.gateway === false;
         document.querySelector("#buttonRecording").hidden = options.capabilities?.button_recording === false;
-        if (!Array.isArray(options.models) || !options.models.length) throw Error("models");
+        if (!options.arms?.length || !options.models?.length) throw Error("settings");
+        selectChoices(nextArm, options.arms, nextArm.value || options.default_arm);
         const selectedModel = nextModel.value || options.default_model;
         const selectedSpeed = nextSpeed.value || options.default_speed;
         const selectedEffort = nextEffort.value || options.default_reasoning_effort;
@@ -325,7 +330,7 @@
       try {
         const response = await fetch("/api/runs", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: nextModel.value, speed: nextSpeed.value, reasoning_effort: nextEffort.value, layout: "previous" })
+          body: JSON.stringify({ arm: nextArm.value, model: nextModel.value, speed: nextSpeed.value, reasoning_effort: nextEffort.value, layout: "previous" })
         });
         if (response.status === 409) {
           operatorBusy = true;
@@ -390,7 +395,7 @@
       const effort = savedEffort === "standard" ? "medium" : savedEffort;
       const effortLabel = currentModel?.reasoning_efforts?.find(item => item.id === effort)?.label || effort;
       const reasoning = effortLabel ? effortLabel + " reasoning" : "";
-      document.querySelector("#model").textContent = [model, speed, reasoning].filter(Boolean).join(" · ");
+      document.querySelector("#model").textContent = [state.arm_label, model, speed, reasoning].filter(Boolean).join(" · ");
       decision.hidden = !(Number(state.decision) > 0);
       if (!decision.hidden) decision.textContent = "Decision " + state.decision;
       if (logRun !== state.run_id) {
@@ -480,6 +485,8 @@
         const response = await fetch("/api/status?view=" + viewName, { cache: "no-store" });
         if (!response.ok) throw Error("status");
         const state = await response.json();
+        const arm = state.arm_label || state.arm || (isCodex && !state.run_id ? "" : "I2RT YAM");
+        sceneDetails.textContent = arm ? arm + " · MuJoCo" : "MuJoCo";
         if (isCodex) renderOutput(state);
         setPhase(state.phase, phases[state.phase] || "Connected");
         const seconds = Number(state.sim_time);

@@ -13,6 +13,8 @@ import tempfile
 
 from PIL import Image, ImageDraw, ImageFont
 
+from arm_config import ARM_LABELS
+
 HERE = Path(__file__).resolve().parent
 CAMERAS = ("front", "overhead", "left", "wrist")
 WIDTH, VIEW_HEIGHT, HEADER, FOOTER, FPS = 1280, 960, 52, 174, 10
@@ -142,7 +144,8 @@ def export(root, *, partial=False, destination=None):
         model_label = f"{family.upper()} {name.capitalize()}"
     else:
         model_label = model
-    title = f'Pouring with {model_label} · {state.get("speed_label", "Standard")}'
+    arm = state.get("arm", "yam")
+    title = f'{ARM_LABELS.get(arm, arm)} · {model_label} · {state.get("speed_label", "Standard")}'
     if effort := state.get("reasoning_effort"):
         title += f" · {effort.capitalize()} reasoning"
     captures, stamps = capture_track(root, state["seq"])
