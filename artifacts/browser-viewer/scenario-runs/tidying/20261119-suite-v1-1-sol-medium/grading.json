@@ -1,0 +1,1 @@
+{"success": true, "score": 100, "summary": "4/4 blocks packed; lid flush.", "packed_count": 4, "packed": ["red", "blue", "green", "yellow"], "lid_flush": true, "lid_center_offset_mm": 0.95, "maximum_lid_corner_offset_mm": 1.023, "maximum_lid_height_error_mm": 0.006}

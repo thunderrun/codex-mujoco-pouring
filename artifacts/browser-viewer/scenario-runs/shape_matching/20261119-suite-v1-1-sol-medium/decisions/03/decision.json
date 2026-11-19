@@ -1,0 +1,7 @@
+{
+  "observation": "The red triangle is released in the upper-left recess, and the loose blue square’s white handle is at (491, 237).",
+  "action": "pick",
+  "u": 491,
+  "v": 237,
+  "angle": 90
+}

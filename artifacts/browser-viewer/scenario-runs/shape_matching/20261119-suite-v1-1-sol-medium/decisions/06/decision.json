@@ -1,0 +1,7 @@
+{
+  "observation": "The yellow circle is gone from its pickup spot, and the third socket in the top row is empty.",
+  "action": "place",
+  "u": 261,
+  "v": 228,
+  "angle": 90
+}

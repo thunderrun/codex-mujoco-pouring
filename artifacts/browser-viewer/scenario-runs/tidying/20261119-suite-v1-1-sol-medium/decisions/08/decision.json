@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the yellow cube between the jaws, and the box’s lower-right quadrant is clear.",
+  "action": "place",
+  "u": 243,
+  "v": 265,
+  "angle": 0
+}

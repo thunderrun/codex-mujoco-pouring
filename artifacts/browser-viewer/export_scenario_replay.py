@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from export_codex_replay import FPS, camera_mosaic, encode_movie, encoded_card
+from scenario_catalog import TASKS
 
 
 def result_card(result):
@@ -20,10 +21,15 @@ def result_card(result):
     elif task == "crocodile":
         outcome = "The entire toy settled inside the rectangle." if passed else "Placement criteria were unmet."
         detail = f'Closest edge clearance {grade["min_clearance_mm"]:.2f} mm across {grade["geometries_checked"]} shapes.'
+    elif task in TASKS:
+        outcome = grade.get("summary") or TASKS[task]
+        detail = ""
     else:
         raise ValueError(f"Unknown tabletop task: {task}")
-    return (f'Verified {"pass" if passed else "fail"} · {result["score"]}/100',
-            f'{outcome} {detail} {result["decision_count"]} decisions. Wall time {result["duration_seconds"]:.2f} s.')
+    score = f'{result["score"]:.1f}'.removesuffix(".0")
+    details = " ".join(s for s in (outcome, detail) if s)
+    return (f'Verified {"pass" if passed else "fail"} · {score}/100',
+            f'{details} {result["decision_count"]} decisions. Wall time {result["duration_seconds"]:.2f} s.')
 
 
 def export(folder, destination=None):
@@ -54,6 +60,8 @@ def export(folder, destination=None):
     boundaries = sorted({0, end_tick, *camera_ticks, *messages})
     family, name = result["model"].rsplit("-", 1)
     label = f'{family.upper()} {name.title()} · {result["reasoning_effort"].title()}'
+    if result.get("revision"):
+        label += f' · {result["revision"]}'
     title = f'{state["title"]} · {state["arm_label"]}'
 
     def frames():

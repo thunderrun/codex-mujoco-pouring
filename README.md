@@ -1,10 +1,40 @@
 # Codex MuJoCo Robotics
 
-Watch Codex press a button, place a toy crocodile, and pour beads using simulated robot arms. The local dashboard brings together 14 recorded trials, their camera views, model decisions, and independently verified results. The button and crocodile tasks use the SO-ARM101. Pouring trials use both the SO-ARM101 and the I2RT YAM. [Set up the viewer](#run-the-local-viewer) · [Open the local dashboard](http://127.0.0.1:37656/)
+Watch Codex operate a simulated SO-ARM101 across eight tabletop tasks inspired by AA-Robotics. The local dashboard shows live camera views, model decisions, recorded replays, and grades from MuJoCo. The pouring workspace also includes I2RT YAM trials. [Set up the viewer](#run-the-local-viewer) · [Open the local dashboard](http://127.0.0.1:37656/)
 
-![Robotics dashboard with the pouring, red button and crocodile tasks and their recorded results](docs/images/robotics-dashboard.png)
+![Robotics dashboard showing all eight tabletop tasks, their latest results and the run history](docs/images/robotics-dashboard.png)
 
 ## Results
+
+### Five additional SO-ARM101 scenarios
+
+GPT-6.2 Sol Medium passed all five tasks on its first attempt at Standard speed, using revision v1 and seed 101. The protocol stops each scenario at its first verified pass. Its fallback order is Sol Max, Astra Medium, then Astra Max, followed by a fresh Sol Medium trial after controller or prompt improvements. Only Sol Medium ran in this batch. Each result represents one seeded layout.
+
+| Scenario | What counts as a pass in this simulation |
+| --- | --- |
+| Tidy the blocks | All four blocks settle fully inside the box. The removable lid sits flush on all four corners and the robot has released it. |
+| Match the shapes | All eight pieces settle flat in the correct sockets, matching both the colors and shapes in the supplied picture. The pieces have raised handles. |
+| Write “hello world” | A premounted marker traces the model’s own letter strokes. All ink must stay inside the black rectangle, and Tesseract must read “hello world” after case normalization. |
+| Build the tower | All four 20 mm blocks form one stable, released stack. At least 80% of each upper block’s footprint must be supported. |
+| Measure the box | The model reports length, width and height. Each must be within 2 mm of the simulated dimension. Two orthographic views supply calibrated scales of 2.4 pixels/mm overhead and 3 pixels/mm from the front. |
+
+| Scenario | GPT-6.2 setting | Revision | Score / 100 | Measured outcome | Decisions | Wall time | Evidence |
+| --- | --- | --- | --- | --- | ---: | ---: | --- |
+| Tidy the blocks | Sol Medium | v1 | **Pass · 100.0** | 4/4 inside, lid flush | 11 | 3m 29.6s | [Video](artifacts/browser-viewer/scenario-runs/tidying/20261119-suite-v1-1-sol-medium/replay.mp4) · [Frame](artifacts/browser-viewer/scenario-runs/tidying/20261119-suite-v1-1-sol-medium/frames/00068/front.jpg) · [Grade](artifacts/browser-viewer/scenario-runs/tidying/20261119-suite-v1-1-sol-medium/result.json) |
+| Match the shapes | Sol Medium | v1 | **Pass · 100.0** | 8/8 seated | 17 | 4m 02.4s | [Video](artifacts/browser-viewer/scenario-runs/shape_matching/20261119-suite-v1-1-sol-medium/replay.mp4) · [Frame](artifacts/browser-viewer/scenario-runs/shape_matching/20261119-suite-v1-1-sol-medium/frames/00108/overhead.jpg) · [Grade](artifacts/browser-viewer/scenario-runs/shape_matching/20261119-suite-v1-1-sol-medium/result.json) |
+| Write hello world | Sol Medium | v1 | **Pass · 100.0** | OCR “HELLO WORLD”, inside box | 2 | 55.3s | [Video](artifacts/browser-viewer/scenario-runs/writing/20261119-suite-v1-1-sol-medium/replay.mp4) · [Frame](artifacts/browser-viewer/scenario-runs/writing/20261119-suite-v1-1-sol-medium/frames/00061/overhead.jpg) · [Grade](artifacts/browser-viewer/scenario-runs/writing/20261119-suite-v1-1-sol-medium/result.json) |
+| Build the tower | Sol Medium | v1 | **Pass · 100.0** | 4/4 stacked, 79.6 mm | 8 | 1m 42.0s | [Video](artifacts/browser-viewer/scenario-runs/tower/20261119-suite-v1-1-sol-medium/replay.mp4) · [Frame](artifacts/browser-viewer/scenario-runs/tower/20261119-suite-v1-1-sol-medium/frames/00045/front.jpg) · [Grade](artifacts/browser-viewer/scenario-runs/tower/20261119-suite-v1-1-sol-medium/result.json) |
+| Measure the box | Sol Medium | v1 | **Pass · 100.0** | Errors 0.05, 0.46, 0.27 mm | 1 | 13.9s | [Video](artifacts/browser-viewer/scenario-runs/measurement/20261119-suite-v1-1-sol-medium/replay.mp4) · [Frame](artifacts/browser-viewer/scenario-runs/measurement/20261119-suite-v1-1-sol-medium/frames/00003/front.jpg) · [Grade](artifacts/browser-viewer/scenario-runs/measurement/20261119-suite-v1-1-sol-medium/result.json) |
+
+The shape-matching trial archives the exact picture supplied to Codex. [Goal picture](artifacts/browser-viewer/scenario-runs/shape_matching/20261119-suite-v1-1-sol-medium/reference.png)
+
+| Four blocks before closing | Shape matching | Contact handwriting |
+| --- | --- | --- |
+| ![Four colored cubes inside the open box while the arm approaches the lid.](artifacts/browser-viewer/scenario-runs/tidying/20261119-suite-v1-1-sol-medium/frames/00055/front.jpg) | ![Overhead replay of colored pieces seated on the matching board.](artifacts/browser-viewer/scenario-runs/shape_matching/20261119-suite-v1-1-sol-medium/frames/00108/overhead.jpg) | ![Ink traces spelling HELLO WORLD inside the black rectangle.](artifacts/browser-viewer/scenario-runs/writing/20261119-suite-v1-1-sol-medium/frames/00061/overhead.jpg) |
+
+| Freestanding tower | Box footprint | Box height |
+| --- | --- | --- |
+| ![Red, blue, yellow and green blocks in a tower with the gripper withdrawn.](artifacts/browser-viewer/scenario-runs/tower/20261119-suite-v1-1-sol-medium/frames/00045/left.jpg) | ![Long and short edges of the orange box under the calibrated overhead grid.](artifacts/browser-viewer/scenario-runs/measurement/20261119-suite-v1-1-sol-medium/frames/00003/overhead.jpg) | ![Orange box against the front camera calibration grid and vertical ruler.](artifacts/browser-viewer/scenario-runs/measurement/20261119-suite-v1-1-sol-medium/frames/00003/front.jpg) |
 
 ### SO-ARM101 button and crocodile trials
 
@@ -66,7 +96,7 @@ The spill count tracks individual beads that touch the bare tabletop, fall below
 
 For each decision, Codex receives front, left, overhead and wrist RGB images, robot joint readings, and previous command feedback. It chooses an action and its parameters. For a button press, the model chooses an overhead pixel. For crocodile placement, it also chooses the angle at which the jaws close across the toy. For pouring, it chooses a cup rim, aligns the gripper, and controls the tilt. A controller converts each command into joint motion. The simulator grades physical contact or final placement and can replay the recorded commands from the same seed.
 
-This repository hosts local simulations. The button physics and granular-pouring task use the independently developed `robo_mj_bench` project. Artificial Analysis runs its AA-Robotics benchmark on physical hardware. [Upstream benchmark revision](https://github.com/lizimo061/robo_mj_bench/tree/a886b54f3cff4e0994f9d3150e032003935b59c6)
+These are local, camera-guided simulations inspired by Artificial Analysis’s physical AA-Robotics benchmark. The SO-ARM101 uses task-specific motions and calibrated cameras. The button and granular-pouring physics, tower support check, and box measurement grader build on the independently developed `robo_mj_bench` project. The physical benchmark uses different hardware and scoring conditions. [Upstream benchmark revision](https://github.com/lizimo061/robo_mj_bench/tree/a886b54f3cff4e0994f9d3150e032003935b59c6)
 
 The SO-ARM101 uses five arm joints and a hinged gripper. Its controller approaches the blue cup from the side and lifts it by finger contact. During pouring, it rolls the wrist and adjusts the arm pitch to keep the estimated cup lip over the selected target. The controller uses the calibrated overhead camera and nominal cup dimensions. The SO-ARM101 base is mounted 14 cm closer to the cups along the table’s x-axis to accommodate its shorter reach. The table, cups, 21 beads, three external cameras, and revised evaluator are shared with the YAM. [SO-101 model provenance](artifacts/browser-viewer/models/robotstudio_so101/PROVENANCE.json)
 
@@ -89,11 +119,11 @@ python -m pip install -e ./benchmark 'mujoco==3.17.0' 'numpy==2.3.4' 'Pillow==12
 MUJOCO_GL=egl python artifacts/browser-viewer/serve.py
 ```
 
-Open the dashboard and choose a task. The button and crocodile workspaces let you play or scrub through the recorded camera frames alongside the Codex event log. The pouring workspace lets you choose a robot arm, pouring skill, model, inference speed, and reasoning effort for a new run. SO-ARM101 offers v1 or v2 and defaults to v2. I2RT YAM uses its v1 skill. [Dashboard](http://127.0.0.1:37656/) · [Button](http://127.0.0.1:37656/scenarios#button) · [Crocodile](http://127.0.0.1:37656/scenarios#crocodile) · [Pouring](http://127.0.0.1:37656/pouring)
+Open the dashboard and choose a task. In the seven SO-ARM101 scenario workspaces, select a trial to see its four camera feeds and Codex event log. Scrub through recorded frames, play the timeline, or open the exported video. Expand **Task instructions and decision prompts** to read the archived skill and select any decision’s exact prompt. Shape matching also shows the goal picture that the model received. The pouring workspace lets you choose a robot arm, pouring skill, model, inference speed, and reasoning effort for a new run. SO-ARM101 offers v1 or v2 and defaults to v2. I2RT YAM uses its v1 skill. [Dashboard](http://127.0.0.1:37656/) · [Button](http://127.0.0.1:37656/scenarios#button) · [Crocodile](http://127.0.0.1:37656/scenarios#crocodile) · [Pouring](http://127.0.0.1:37656/pouring)
 
-New model trials require a working Linux EGL graphics driver and an authenticated Codex CLI with access to the selected model and speed. The pouring dashboard launcher also requires a systemd user session. The recorded trials used Codex CLI 0.170.0. The video exporters use FFmpeg, ffprobe, and the DejaVu Sans fonts. On Ubuntu the relevant packages include `ffmpeg` and `fonts-dejavu-core`.
+New model trials require a working Linux EGL graphics driver and an authenticated Codex CLI with access to the selected model and speed. The pouring dashboard launcher also requires a systemd user session. The recorded trials used Codex CLI 0.170.0. The video exporters use FFmpeg, ffprobe, and DejaVu Sans. The writing grader uses Tesseract with English language data. Install the Ubuntu packages `ffmpeg`, `fonts-dejavu-core`, `tesseract-ocr`, and `tesseract-ocr-eng` for these features.
 
-To run another camera-guided SO-ARM101 trial on the published layout, set the task to `button` or `crocodile`. Each run writes a new directory under `artifacts/browser-viewer/scenario-runs/` and appears in the dashboard.
+To run another camera-guided SO-ARM101 trial on the published layout, choose `button`, `crocodile`, `tidying`, `shape_matching`, `writing`, `tower`, or `measurement`. Each run writes a new directory under `artifacts/browser-viewer/scenario-runs/` and appears in the dashboard.
 
 ```bash
 MUJOCO_GL=egl python artifacts/browser-viewer/run_scenario.py --task button --seed 101 --model gpt-6.2-sol --effort medium
@@ -101,7 +131,7 @@ MUJOCO_GL=egl python artifacts/browser-viewer/run_scenario.py --task button --se
 
 ## Reproduce the archived scores
 
-Replay the two SO-ARM101 trials from their saved model decisions. In the activated environment, these commands rebuild each scene with its recorded seed and compare the physical grade and controller responses with the original run.
+Replay any archived SO-ARM101 scenario from its saved model decisions. The commands below use button and crocodile as examples. Each rebuilds the scene with the recorded seed and compares the grade and controller responses with the original run.
 
 ```bash
 python artifacts/browser-viewer/run_scenario.py --verify artifacts/browser-viewer/scenario-runs/button/20261119-151826-sol-medium

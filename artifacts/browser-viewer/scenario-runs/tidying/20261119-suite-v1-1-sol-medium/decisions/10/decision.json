@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the lid handle between the jaws, and all four cubes are inside the box.",
+  "action": "place_lid",
+  "u": 215,
+  "v": 242,
+  "angle": 0
+}

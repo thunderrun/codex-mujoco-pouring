@@ -65,11 +65,25 @@ def public_error(value):
     return "The Codex request failed."
 
 
-def parse_decision(text, actions=ACTIONS):
+def matches_field(value, schema):
+    kind = schema["type"]
+    if kind == "integer":
+        return type(value) is int
+    if kind == "number":
+        return type(value) in (int, float) and math.isfinite(value)
+    if kind == "string":
+        return isinstance(value, str)
+    if kind == "array":
+        return isinstance(value, list) and all(matches_field(item, schema["items"]) for item in value)
+    return False
+
+
+def parse_decision(text, actions=ACTIONS, fields=None):
     try:
         d = json.loads(text)
-        if (isinstance(d, dict) and set(d) == set(SCHEMA["required"])
+        if (isinstance(d, dict) and set(d) == set(SCHEMA["required"]).union(fields or {})
                 and isinstance(d["observation"], str) and d["observation"].strip()
+                and all(matches_field(d[k], spec) for k, spec in (fields or {}).items())
                 and d["action"] in actions and type(d["u"]) is int and type(d["v"]) is int
                 and type(d["angle"]) in (int, float) and math.isfinite(d["angle"])):
             return {**d, "observation": public_text(d["observation"])}
@@ -79,14 +93,17 @@ def parse_decision(text, actions=ACTIONS):
 
 
 def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=MODEL,
-           speed="standard", reasoning_effort=DEFAULT_REASONING_EFFORT, actions=ACTIONS, camera_names=None):
+           speed="standard", reasoning_effort=DEFAULT_REASONING_EFFORT, actions=ACTIONS, camera_names=None, fields=None):
     selected = run_settings(model, speed, reasoning_effort)
     work = Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
     if camera_names is None:
         camera_names = [*CAMERAS, *(name for name in ("initial_overhead", "previous_tip_overhead_sequence")
                                     if name in images)]
-    schema = {**SCHEMA, "properties": {**SCHEMA["properties"], "action": {"type": "string", "enum": list(actions)}}}
+    fields = fields or {}
+    schema = {**SCHEMA, "properties": {**SCHEMA["properties"], **fields,
+                                       "action": {"type": "string", "enum": list(actions)}},
+              "required": [*SCHEMA["required"], *fields]}
     ordered = [Path(images[camera]).resolve(strict=True) for camera in camera_names]
     cli = shutil.which("codex") or str(Path.home() / ".local/bin/codex")
     order_text = ", ".join(name.replace("_", " ") for name in camera_names)
@@ -146,7 +163,7 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
                             emit("status", "Codex is inspecting the camera images.")
                         elif event_type == "item.completed" and item_type == "agent_message":
                             value = item.get("text", "")
-                            decision = parse_decision(value, actions)
+                            decision = parse_decision(value, actions, fields)
                             if decision:
                                 message = decision["observation"]
                             else:
@@ -166,7 +183,7 @@ def decide(images: dict[str, Path], prompt: str, work: Path, on_event, *, model=
                         errors.seek(0)
                         emit("error", public_error(errors.read(24000)))
                 if code == 0 and receipt.is_file():
-                    decision = parse_decision(receipt.read_text(encoding="utf-8"), actions)
+                    decision = parse_decision(receipt.read_text(encoding="utf-8"), actions, fields)
                     if decision:
                         if decision["observation"] != last_model:
                             emit("model", decision["observation"])

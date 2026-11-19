@@ -1,0 +1,16 @@
+{
+  "model": "gpt-6.2-sol",
+  "speed": "standard",
+  "speed_label": "Standard",
+  "service_tier": "default",
+  "reasoning_effort": "medium",
+  "input_sha256": "79dd5595d64c6282b8dfb4b7ccbaa28ae1065582d1e572c4f70e98b587fdd0af",
+  "observation_views": [
+    "overhead",
+    "front",
+    "left",
+    "wrist",
+    "goal_reference",
+    "initial_overhead"
+  ]
+}

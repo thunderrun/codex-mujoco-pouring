@@ -1,0 +1,1 @@
+{"success": true, "score": 100.0, "correct_count": 8, "pieces_total": 8, "seated": {"red_triangle": true, "blue_square": true, "yellow_circle": true, "green_hexagon": true, "red_hexagon": true, "blue_circle": true, "green_triangle": true, "yellow_square": true}, "summary": "8/8 colored shapes seated in the reference arrangement."}

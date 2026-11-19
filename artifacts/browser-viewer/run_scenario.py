@@ -1,4 +1,4 @@
-"""Run or independently replay a camera-guided SO-ARM101 button or crocodile episode."""
+"""Run or independently replay a camera-guided SO-ARM101 tabletop episode."""
 import argparse
 import hashlib
 import io
@@ -11,10 +11,11 @@ from PIL import Image
 
 from codex_actor import MODEL, MODEL_SPEEDS, REASONING_EFFORTS, decide, run_settings
 from run_codex import overhead_ruler, save
+from scenario_catalog import TASKS
 
 
 HERE = Path(__file__).resolve().parent
-TASKS = {"button": "Press the red button", "crocodile": "Place the crocodile toy in the rectangle"}
+TASK_LIMITS = {"tidying": 20, "shape_matching": 30, "writing": 18, "tower": 18, "measurement": 10}
 DECISION_LIMIT = 10
 
 
@@ -45,7 +46,15 @@ class CrocodileScenario:
         self.sim.close()
 
 
-def create_task(task, seed):
+def create_task(task, seed, revision="v1"):
+    if task in ("tidying", "shape_matching", "tower"):
+        from packing_scenarios import create
+        return create(task, seed, revision)
+    if task in ("writing", "measurement"):
+        from writing_measurement import create
+        return create(task, seed, revision)
+    if revision != "v1":
+        raise ValueError(f"Unknown {task} revision: {revision}")
     if task == "button":
         from button_scenario import create
         return create(seed)
@@ -64,7 +73,7 @@ def execute(scene, decision):
 def replay(folder):
     manifest = json.loads((folder / "model_receipt.json").read_text())
     first_grade = json.loads((folder / "grading.json").read_text())
-    scene = create_task(manifest["task"], manifest["seed"])
+    scene = create_task(manifest["task"], manifest["seed"], manifest.get("revision", "v1"))
     feedback_matches = True
     count = 0
     try:
@@ -77,6 +86,8 @@ def replay(folder):
                 break
             feedback = execute(scene, decision)
             feedback_matches &= json.loads((path.parent / "feedback.json").read_text()) == feedback
+            if decision["action"] in getattr(scene, "terminal_actions", ()) and not feedback.startswith("Command rejected:"):
+                break
         # A recorded JSON array and a runtime tuple represent the same measured vector.
         replay_grade = json.loads(json.dumps(scene.grade(), allow_nan=False))
     finally:
@@ -108,15 +119,19 @@ def publish_verified(folder, state, grade, verification, finished_at, duration):
     task, success = state["task"], grade["success"]
     if type(success) is not bool:
         raise ValueError("The task grader did not return a boolean pass decision.")
-    score = 100 if success else 0
+    score = grade.get("score", 100 if success else 0)
+    if not 0 <= score <= 100 or (success and score != 100):
+        raise ValueError("Invalid grade score.")
     descriptions = {
         "button": ("No qualifying button flash.", "Button flashed."),
         "crocodile": ("Final placement did not meet the physical pass criteria.",
                       "The whole toy settled inside the rectangle."),
     }
-    outcome = ("Pass" if success else "Fail") + " · " + descriptions[task][success]
+    summary = grade.get("summary") or descriptions.get(task, ("Criteria unmet.", "Criteria met."))[success]
+    outcome = ("Pass" if success else "Fail") + " · " + summary
     settings = run_settings(state["model"], state["speed"], state["reasoning_effort"])
     result = {"task": task, **settings, "arm": state["arm"], "run_id": state["run_id"],
+              "revision": state.get("revision", "v1"),
               "success": success, "score": score, "grade": grade, "verification": verification,
               "decision_count": state["decision"], "started_at": state["started_at"],
               "finished_at": finished_at, "duration_seconds": duration, "verified_at": timestamp()}
@@ -143,13 +158,15 @@ def finalize(folder):
     return publish_verified(folder, state, grade, verification, state["finished_at"], state["duration_seconds"])
 
 
-def run(task, model, effort, seed, folder, *, decision_limit=DECISION_LIMIT):
+def run(task, model, effort, seed, folder, *, revision="v1", decision_limit=None):
+    if decision_limit is None:
+        decision_limit = TASK_LIMITS.get(task, DECISION_LIMIT)
     settings = run_settings(model, "standard", effort)
     folder = Path(folder).resolve()
     folder.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     receipt = {"task": task, "arm": "so101", "seed": seed, "run_id": folder.name,
-               "started_at": timestamp(), "decision_limit": decision_limit, **settings}
+               "started_at": timestamp(), "decision_limit": decision_limit, "revision": revision, **settings}
     save(folder / "model_receipt.json", receipt)
     state = {**{k: v for k, v in receipt.items() if k != "seed"},
              "title": TASKS[task], "arm_label": "SO-ARM101", "phase": "starting", "seq": 0,
@@ -171,7 +188,7 @@ def run(task, model, effort, seed, folder, *, decision_limit=DECISION_LIMIT):
     history = []
     event("system", f"Starting {TASKS[task]} with {model}, {effort} reasoning and four RGB cameras.")
     try:
-        scene = create_task(task, seed)
+        scene = create_task(task, seed, revision)
         (folder / "skill.md").write_text(scene.guide)
 
         def capture():
@@ -192,11 +209,19 @@ def run(task, model, effort, seed, folder, *, decision_limit=DECISION_LIMIT):
         capture()
         scene.set_frame_callback(capture)
         initial = latest["overhead"]
+        reference = None
+        if hasattr(scene, "reference_image"):
+            image = scene.reference_image()
+            if image is not None:
+                reference = folder / "reference.png"
+                image.save(reference, "PNG")
         for number in range(1, decision_limit + 1):
             update(phase="thinking", decision=number, caption=f"Codex is inspecting the cameras for decision {number}.")
             step_dir = folder / "decisions" / f"{number:02d}"
             step_dir.mkdir(parents=True)
             images = dict(latest)
+            if reference:
+                images["goal_reference"] = reference
             if number > 1:
                 images["initial_overhead"] = initial
             save(step_dir / "observations.json",
@@ -213,10 +238,14 @@ def run(task, model, effort, seed, folder, *, decision_limit=DECISION_LIMIT):
                 if kind in ("model", "status", "error"):
                     event({"model": "codex", "status": "system", "error": "error"}[kind], message)
             decision = decide(images, prompt, step_dir, relay, model=model, reasoning_effort=effort,
-                              camera_names=list(images), actions=scene.actions)
+                              camera_names=list(images), actions=scene.actions, fields=getattr(scene, "fields", None))
             action = decision["action"]
-            event("command", f"{action} ({decision['u']}, {decision['v']}, {decision['angle']}°)"
-                  if action not in ("finish", "park") else action)
+            params = {k: v for k, v in decision.items() if k not in ("action", "observation") and v != []}
+            if params.get("strokes"):
+                lines = params.pop("strokes")
+                params["stroke_count"] = len(lines)
+                params["point_count"] = sum(len(line) for line in lines)
+            event("command", action if action in ("finish", "park") else f"{action} {json.dumps(params, separators=(',', ':'))}")
             if action == "finish":
                 break
             update(phase="moving", caption=f"Executing {action}.")
@@ -225,6 +254,8 @@ def run(task, model, effort, seed, folder, *, decision_limit=DECISION_LIMIT):
             event("result", feedback)
             history.append({**decision, "feedback": feedback})
             capture()
+            if action in getattr(scene, "terminal_actions", ()) and not feedback.startswith("Command rejected:"):
+                break
         else:
             event("system", "Decision limit reached. Grading the current physical state.")
         update(phase="verifying", caption="Grading and replaying the recorded commands.")
@@ -257,6 +288,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", choices=MODEL_SPEEDS, default=MODEL)
     parser.add_argument("--effort", choices=REASONING_EFFORTS, default="medium")
     parser.add_argument("--run-dir", type=Path)
+    parser.add_argument("--revision", choices=("v1", "v2"), default="v1")
     args = parser.parse_args()
     if args.verify:
         result = replay(args.verify.resolve())
@@ -270,5 +302,5 @@ if __name__ == "__main__":
         parser.error("--task is required to start a new run")
     folder = args.run_dir or (HERE / "scenario-runs" / args.task /
                              (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + f"-{args.model}-{args.effort}"))
-    result = run(args.task, args.model, args.effort, args.seed, folder)
+    result = run(args.task, args.model, args.effort, args.seed, folder, revision=args.revision)
     print(json.dumps({k: result[k] for k in ("task", "run_id", "success", "score", "decision_count", "duration_seconds")}))

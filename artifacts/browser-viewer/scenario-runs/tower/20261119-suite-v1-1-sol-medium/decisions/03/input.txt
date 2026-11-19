@@ -1,0 +1,17 @@
+Build the tallest freestanding tower using all four foam blocks. Each block
+is 20 mm tall and the blocks have different square footprints. Use a large base and
+center each successively smaller block on the one below. Keep their marked faces up,
+release the gripper, and inspect the final stack. A hand-supported tower fails.
+Pick selects a block on the tabletop by its top-center overhead pixel (u,v).
+Use place_level2 on a one-block base, place_level3 on a two-block stack, and
+place_level4 on a three-block stack. Aim at the overhead center of the current
+TOP face. These commands calibrate the gripper height for that tier; you select
+the stack and aim. place_table sets a held block on bare table.
+The angle in pick/place is the jaw-closing axis clockwise from overhead-image right.
+Align the jaws with flat sides. Keeping the same angle on pick and release keeps
+the orientation. Park clears the view if the jaws hide the stack. Use the initial
+overhead view for loose blocks that the arm temporarily hides. Submit finish.
+Use the public camera images to locate objects. The overhead image has a 20-pixel reference grid; x increases to the right, y increases down the image. For commands with no angle, return 0 for angle. Give one action and one concise observable reason. Inspect the scene after motion. When your task appears complete, submit finish.
+Decision 3 of 18. Public encoders: {"joint_positions_rad": [-0.3123406555734424, -0.2064240250115415, 0.2719308323026283, 1.5057404571580741, 1.3071022051717849], "gripper_angle_rad": 0.7470005306452624, "sim_time": 5.8}.
+Previous actions and feedback: [{"observation": "Red has the largest footprint, and blue is the next largest with its marked face up.", "action": "pick", "u": 407, "v": 252, "angle": 0, "feedback": "pick trajectory completed. Inspect the cameras."}, {"observation": "The gripper holds the blue block, and the red base’s top center is visible.", "action": "place_level2", "u": 253, "v": 245, "angle": 0, "feedback": "place_level2 trajectory completed. Inspect the cameras."}].
+The attached RGB images are, in order: overhead, front, left, wrist, initial overhead. If you give a progress update, use a brief public camera observation. Return your one final camera observation and requested action as the specified JSON. Use only the public information and images in this message. Do not use tools.

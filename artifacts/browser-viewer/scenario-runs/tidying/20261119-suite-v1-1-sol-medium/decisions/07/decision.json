@@ -1,0 +1,7 @@
+{
+  "observation": "The red, blue, and green cubes are inside the box, and the yellow cube is unobstructed on the table.",
+  "action": "pick",
+  "u": 412,
+  "v": 276,
+  "angle": 0
+}

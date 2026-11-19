@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds green, and the yellow top face’s center mark is visible.",
+  "action": "place_level4",
+  "u": 241,
+  "v": 242,
+  "angle": 0
+}

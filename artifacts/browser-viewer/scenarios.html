@@ -7,12 +7,12 @@
 <style>
 :root{color-scheme:dark;font:16px/1.45 Inter,"DejaVu Sans",sans-serif;background:#111613;color:#e5eee7}
 *{box-sizing:border-box}body{margin:0}main{max-width:1400px;margin:auto;padding:26px clamp(14px,3vw,46px) 42px}
-a{color:#b6e7c6;text-underline-offset:3px}header,nav,.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+a{color:#b6e7c6;text-underline-offset:3px}header,.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 header{justify-content:space-between}header p{font-size:.85rem;color:#b5c8b9}
 h1{font-size:clamp(1.8rem,4vw,3.1rem);letter-spacing:-.035em;line-height:1.08;margin:27px 0 6px}
 h2{font-size:1.05rem;margin:0}.criteria{margin:0 0 22px;color:#bfd1c4}
-nav{gap:4px}nav a,select,button{color:#e2ece5;background:#222c25;border:1px solid #45564a;border-radius:5px;padding:6px 11px;font:inherit;font-size:.88rem}
-nav a{text-decoration:none}nav a[aria-current="page"],button:hover{background:#b9edca;color:#132217}
+select,button{color:#e2ece5;background:#222c25;border:1px solid #45564a;border-radius:5px;padding:6px 11px;font:inherit;font-size:.88rem}
+button:hover{background:#b9edca;color:#132217}
 select{max-width:100%}button{cursor:pointer}.controls{justify-content:space-between;margin-bottom:14px}.controls label{font-size:.82rem;color:#adbdaf}
 #summary{font-variant-numeric:tabular-nums}.pass{color:#b3edbf}.fail{color:#ffaf90}
 .grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(285px,1fr);gap:14px}
@@ -24,35 +24,42 @@ aside{border:1px solid #39483d;border-radius:6px;display:flex;flex-direction:col
 aside h2{padding:12px 14px;border-bottom:1px solid #354138}
 #log{flex:1;min-height:0;overflow:auto;height:0;padding:0 14px;scrollbar-color:#4d6152 transparent}
 article{padding:9px 0;border-bottom:1px solid #2a362d;overflow-wrap:anywhere;font-size:.9rem}
+details{margin:12px 0;color:#bfd1c4}details img{display:block;max-width:min(100%,640px);margin:8px 0;border-radius:5px}summary{cursor:pointer}
+#instructions {margin-top:20px;border-top:1px solid #374639;padding-top:12px}
+#instructions h3{font-size:.9rem;margin:16px 0 6px}#instructions label{display:inline-flex;align-items:center;gap:8px}
+#instructions pre{max-height:21rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.83rem/1.5 "DejaVu Sans Mono",monospace;color:#d9e4db;background:#18201b;border:1px solid #344338;border-radius:5px;padding:12px}
 article small{display:block;color:#adcab8;font-size:.72rem;margin-bottom:3px}article[data-kind="command"]{font-family:monospace;color:#c2dae9}
 .player{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 0}input[type=range]{flex:1;min-width:80px;accent-color:#b5eac6}
-#frameLabel{font-size:.8rem;color:#b9cabd;font-variant-numeric:tabular-nums}#result{color:#ceded1}
+#frameLabel{font-size:.8rem;color:#b9cabd;font-variant-numeric:tabular-nums}#result{color:#ceded1}.links{display:flex;flex-wrap:wrap;gap:.4rem 1rem}
 [hidden]{display:none!important}a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #99e0af}
 @media(max-width:800px){.grid{grid-template-columns:1fr}aside{height:280px}}
 </style>
 <main>
-<header><a href="/">← All tasks</a><nav aria-label="Tabletop task"><a href="#button" id="button">Red button</a><a href="#crocodile" id="crocodile">Crocodile</a></nav></header>
-<h1 id="title">Press the red button</h1><p class="criteria" id="criteria"></p>
+<header><a href="/">← All tasks</a><label>Task <select id="taskSelect" aria-label="Task workspace"></select></label></header>
+<h1 id="title">Tabletop trials</h1><p class="criteria" id="criteria"></p>
 <div class="controls"><label>Recorded trial <select id="trials" aria-label="Recorded trial"></select></label><strong id="summary" role="status"></strong></div>
+<details id="reference" hidden><summary>Reference picture shown to Codex</summary><img id="referenceImage" alt="Task reference supplied to the model"></details>
 <div class="grid" id="workspace" hidden>
 <div><section id="cameras" aria-label="Recorded camera views"></section>
 <div class="player"><button id="play" type="button">Play frames</button><input type="range" id="frame" min="1" value="1" aria-label="Camera frame"><span id="frameLabel"></span><button id="latest" type="button">Latest</button></div></div>
 <aside><h2>Codex output</h2><div id="log" role="log" aria-label="Run events" tabindex="0"></div></aside>
 </div>
-<p id="result"></p><a id="evidence" hidden>Verified result JSON</a> <a id="movie" hidden style="margin-left:1rem">Watch MP4</a>
+<p id="result"></p><div class="links"><a id="movie" hidden>Watch MP4</a><a id="evidence" hidden>Verified result JSON</a></div>
+<details id="instructions" hidden>
+  <summary>Task instructions and decision prompts</summary>
+  <h3>Task instructions</h3><pre id="skillText"></pre>
+  <label for="promptDecision">Decision prompt <select id="promptDecision"></select></label><pre id="promptText"></pre>
+</details>
 </main>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const tasks={
-  button:["Press the red button","The button must flash when the gripper presses it."],
-  crocodile:["Place the crocodile in the rectangle","The entire toy must settle inside the marked rectangle."]
-};
+let tasks={};
 let run="", state=null, frame=0, follow=true, timer=null, logLength=-1, listKey="", request=0;
-function task(){return location.hash==="#crocodile"?"crocodile":"button";}
+function task(){const id=location.hash.slice(1);return Object.hasOwn(tasks,id)?id:"button";}
 function base(){return "/scenarios/"+task()+"/"+encodeURIComponent(run)+"/";}
 function stop(){clearInterval(timer);timer=null;$("play").textContent="Play frames";}
-function reset(){stop();state=null;frame=0;follow=true;logLength=-1;$("cameras").replaceChildren();$("log").replaceChildren();$("result").textContent="";$("evidence").hidden=true;$("movie").hidden=true;$("workspace").hidden=true;}
+function reset(){stop();state=null;frame=0;follow=true;logLength=-1;$("cameras").replaceChildren();$("log").replaceChildren();$("result").textContent="";$("evidence").hidden=true;$("movie").hidden=true;$("instructions").hidden=true;$("promptDecision").replaceChildren();for(const id of ["skillText","promptText"]){$(id).textContent="";delete $(id).dataset.source;}$("reference").hidden=true;$("reference").open=false;$("referenceImage").removeAttribute("src");$("workspace").hidden=true;}
 function showFrame(n){
   if(!state || !state.seq)return;
   const cameras=state.cameras || [], area=$("cameras");
@@ -66,34 +73,70 @@ function showFrame(n){
   }
   cameras.forEach((name,i)=>{area.children[i].firstChild.src=base()+"frames/"+String(n).padStart(5,"0")+"/"+encodeURIComponent(name)+".jpg";});
 }
+async function archivedText(id, url) {
+  const element=$(id);
+  if(element.dataset.source===url)return;
+  element.dataset.source=url;element.textContent="Loading…";
+  try {
+    const response=await fetch(url,{cache:"no-store"});
+    if(!response.ok)throw new Error("Archive unavailable");
+    const text=await response.text();
+    if(element.dataset.source===url)element.textContent=text;
+  } catch {
+    if(element.dataset.source===url) {
+      element.textContent="Waiting for the archived text.";
+      delete element.dataset.source;
+    }
+  }
+}
+function showInstructions() {
+  if(!$("instructions").open || !run || !state)return;
+  const select=$("promptDecision");
+  const count=Math.max(0,Number(state.decision)||0);
+  if(select.options.length!==count) {
+    const previous=Number(select.value)||1;
+    select.replaceChildren(...Array.from({length:count},(_,i)=>new Option(String(i+1),String(i+1))));
+    if(count)select.value=String(Math.min(previous,count));
+  }
+  archivedText("skillText",base()+"skill.md");
+  if(count)archivedText("promptText",base()+"decisions/"+select.value.padStart(2,"0")+"/input.txt");
+}
+$("instructions").ontoggle=showInstructions;
+$("promptDecision").onchange=showInstructions;
 function selectRun(value){if(run!==value){reset();run=value;}}
 function describe(s){
   const phase=s.phase==="finished"?(s.success?"Passed":"Failed"):s.phase;
   const elapsed=s.finished_at || !s.started_at?s.duration_seconds:Math.max(s.duration_seconds||0,(Date.now()-Date.parse(s.started_at))/1000);
   const wall=elapsed==null?"":Math.floor(elapsed/60)+"m "+Math.floor(elapsed%60)+"s";
-  return [phase && phase[0].toUpperCase()+phase.slice(1),wall].filter(Boolean).join(" · ");
+  const score=Number.isFinite(s.score)?s.score.toFixed(1).replace(/\.0$/,"")+"/100":"";
+  return [phase && phase[0].toUpperCase()+phase.slice(1),score,wall].filter(Boolean).join(" · ");
 }
 async function refresh(){
   const stamp=++request, active=task();
   try {
     const all=await (await fetch("/api/scenarios",{cache:"no-store"})).json();
     if(stamp!==request)return;
-    const entries=all.filter(x=>x.task===active), key=JSON.stringify(entries.map(x=>[x.run_id,x.phase,x.success]));
+    const entries=all.filter(x=>x.task===active), key=JSON.stringify(entries.map(x=>[x.run_id,x.phase,x.revision,x.success,x.score]));
     if(key!==listKey){
-      const was=run || new URLSearchParams(location.search).get("run");
+      const pinned=new URLSearchParams(location.search).get("run");
       $("trials").replaceChildren(...entries.map(x=>{
         const o=document.createElement("option");o.value=x.run_id;
-        o.textContent=x.model+" · "+x.reasoning_effort+" · "+(x.started_at?new Date(x.started_at).toLocaleTimeString():x.run_id);
+        const when=x.started_at?new Date(x.started_at).toLocaleString():x.run_id;
+        const outcome=x.phase==="finished"?(x.success?"Pass":"Fail"):x.phase;
+        o.textContent=[x.model,x.reasoning_effort,x.revision,outcome,when].filter(Boolean).join(" · ");
         return o;
       }));listKey=key;
-      selectRun(entries.some(x=>x.run_id===was)?was:entries[0]?.run_id||"");$("trials").value=run;
+      selectRun(entries.some(x=>x.run_id===pinned)?pinned:entries[0]?.run_id||"");$("trials").value=run;
     }
     if(!run){$("summary").textContent="Waiting for a trial";return;}
     const s=await (await fetch(base()+"status.json",{cache:"no-store"})).json();
     if(stamp!==request)return;
-    const movie=entries.find(x=>x.run_id===run)?.replay_url;
+    const record=entries.find(x=>x.run_id===run), movie=record?.replay_url;
+    $("reference").hidden=!record?.reference_url;
+    if(record?.reference_url && $("referenceImage").getAttribute("src")!==record.reference_url) $("referenceImage").src=record.reference_url;
     $("movie").hidden=!movie;if(movie)$("movie").href=movie;
-    state=s;$("workspace").hidden=false;$("summary").textContent=describe(s);
+    $("instructions").hidden=!record?.skill_url;
+    state=s;showInstructions();$("workspace").hidden=false;$("summary").textContent=describe(s);
     $("summary").className=s.success===true?"pass":s.success===false?"fail":"";
     $("result").textContent=s.result||s.caption||"";
     $("evidence").hidden=s.phase!=="finished";$("evidence").href=base()+"result.json";
@@ -110,12 +153,36 @@ async function refresh(){
     }
   } catch(error){if(stamp===request)$("summary").textContent="Reconnecting…";}
 }
-function openTask(){run="";listKey="";reset();const active=task();$("title").textContent=tasks[active][0];$("criteria").textContent="SO-ARM101 · MuJoCo · "+tasks[active][1];for(const id of Object.keys(tasks))$(id).setAttribute("aria-current",id===active?"page":"false");refresh();}
+function openTask(){
+  if(!Object.keys(tasks).length)return;
+  run="";listKey="";reset();
+  const active=task(); $("taskSelect").value=active;
+  $("title").textContent=tasks[active].name;
+  $("criteria").textContent="SO-ARM101 · MuJoCo · "+tasks[active].description;
+  refresh();
+}
+async function initialize(){
+  try {
+    const response=await fetch("/scenarios/catalog.json",{cache:"no-store"});
+    if(!response.ok)throw new Error("Task catalog unavailable");
+    const items=(await response.json()).filter(item=>item.id!=="pouring");
+    tasks=Object.fromEntries(items.map(item=>[item.id,item]));
+    $("taskSelect").replaceChildren(...items.map(item=>new Option(item.short,item.id)));
+    openTask();setInterval(refresh,1800);
+  } catch(error){$("summary").textContent="Reconnecting…";setTimeout(initialize,1800);}
+}
+$("taskSelect").onchange=()=>{
+  const url=new URL(location.href);url.searchParams.delete("run");url.hash=$("taskSelect").value;
+  history.pushState(null,"",url);openTask();
+};
 $("frame").oninput=()=>{stop();follow=false;showFrame(Number($("frame").value));};
 $("latest").onclick=()=>{stop();follow=true;showFrame(state?.seq||1);};
 $("play").onclick=()=>{if(timer){stop();return;}if(!state?.seq)return;follow=false;if(frame>=state.seq)showFrame(1);
   $("play").textContent="Pause";timer=setInterval(()=>{if(frame>=state.seq){stop();return;}showFrame(frame+1);},220);};
-$("trials").onchange=()=>{selectRun($("trials").value);refresh();};
-window.addEventListener("hashchange",openTask);openTask();setInterval(refresh,1800);
+$("trials").onchange=()=>{
+  const value=$("trials").value,url=new URL(location.href);url.searchParams.set("run",value);
+  history.replaceState(null,"",url);selectRun(value);refresh();
+};
+window.addEventListener("hashchange",openTask);initialize();
 </script>
 </html>

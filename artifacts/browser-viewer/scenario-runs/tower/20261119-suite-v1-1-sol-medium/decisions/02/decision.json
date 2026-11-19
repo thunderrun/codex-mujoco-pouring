@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the blue block, and the red base’s top center is visible.",
+  "action": "place_level2",
+  "u": 253,
+  "v": 245,
+  "angle": 0
+}

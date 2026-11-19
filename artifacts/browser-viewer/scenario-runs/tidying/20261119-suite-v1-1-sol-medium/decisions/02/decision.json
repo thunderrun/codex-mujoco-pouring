@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist camera shows the red cube held between the jaws, and the box’s upper-left quadrant is clear.",
+  "action": "place",
+  "u": 187,
+  "v": 216,
+  "angle": 0
+}

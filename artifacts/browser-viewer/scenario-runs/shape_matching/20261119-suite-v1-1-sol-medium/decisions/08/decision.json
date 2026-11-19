@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the green hexagon in the gripper, and the upper-right hexagonal socket is empty in the left view.",
+  "action": "place",
+  "u": 313,
+  "v": 228,
+  "angle": 90
+}

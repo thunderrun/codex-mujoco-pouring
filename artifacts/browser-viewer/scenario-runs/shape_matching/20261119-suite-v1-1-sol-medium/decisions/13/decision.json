@@ -1,0 +1,7 @@
+{
+  "observation": "The blue circle is seated in the bottom row, and the loose green triangle’s white handle is at (448, 236).",
+  "action": "pick",
+  "u": 448,
+  "v": 236,
+  "angle": 90
+}

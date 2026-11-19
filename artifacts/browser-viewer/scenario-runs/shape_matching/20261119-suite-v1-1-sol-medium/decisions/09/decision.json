@@ -1,0 +1,7 @@
+{
+  "observation": "The green hexagon is seated in the upper-right socket, and the loose red hexagon’s white handle is visible at (365, 236).",
+  "action": "pick",
+  "u": 365,
+  "v": 236,
+  "angle": 90
+}

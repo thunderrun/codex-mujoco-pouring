@@ -1,0 +1,8 @@
+{
+  "observation": "HELLO WORLD is legible on one line inside the black rectangle, with a clear gap between the words.",
+  "action": "finish",
+  "u": 0,
+  "v": 0,
+  "angle": 0,
+  "strokes": []
+}

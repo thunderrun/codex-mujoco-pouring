@@ -1,0 +1,7 @@
+{
+  "observation": "The gripper holds the red triangle, and its upper-left socket is empty.",
+  "action": "place",
+  "u": 159,
+  "v": 228,
+  "angle": 90
+}

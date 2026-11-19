@@ -1,0 +1,7 @@
+{
+  "observation": "All four cubes are inside the box, and the lid’s pale handle is unobstructed.",
+  "action": "pick_lid",
+  "u": 511,
+  "v": 275,
+  "angle": 0
+}

@@ -1,0 +1,7 @@
+{
+  "observation": "The red cube is unobstructed, with flat sides aligned to the overhead grid.",
+  "action": "pick",
+  "u": 356,
+  "v": 222,
+  "angle": 0
+}

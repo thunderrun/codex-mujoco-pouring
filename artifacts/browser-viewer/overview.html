@@ -24,11 +24,12 @@
     h2, h3, p { margin: 0; }
     a { color: #c0e9cd; text-underline-offset: 3px; }
     a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #a6eac1; outline-offset: 4px; }
-    #tasks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 22px); }
+    #tasks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 22px); }
     .card { display: flex; flex-direction: column; color: inherit; text-decoration: none; overflow: hidden; background: #1a221d; border: 1px solid #36483c; border-radius: 9px; }
     .card:hover { border-color: #7d9b86; }
     .view { aspect-ratio: 16/9; background: #202823; overflow: hidden; }
     .view img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .view:has(img[hidden]) { display: none; }
     .card[data-task="button"] img { object-position: center top; }
     .card[data-task="pouring"] img { transform: scale(1.35); }
     .card-body { padding: clamp(14px, 1.65vw, 24px); flex: 1; display: flex; flex-direction: column; }
@@ -54,10 +55,12 @@
     td:nth-last-child(3) { font-weight: 630; color: #caedd6; }
     #notice { margin: 15px 0 0; color: #b8c8bc; }
     [hidden] { display: none !important; }
-    @media (max-width: 780px) {
+    @media (min-width: 721px) and (max-width: 1120px) { #tasks { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 720px) {
       header { display: block; } #total { margin-top: .45rem; font-size: .86rem; }
       #tasks { grid-template-columns: 1fr; }
       .card { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr); }
+      .card:has(img[hidden]) { grid-template-columns: minmax(0,1fr); }
       .view { height: 100%; aspect-ratio: auto; }
       .card-body { padding: 13px; }
       .criterion { margin-bottom: 13px; }
@@ -72,12 +75,12 @@
     <p id="total" aria-live="polite"></p>
   </header>
   <section id="tasks" aria-label="Task workspaces"></section>
-  <noscript><p>Task workspaces: <a href="/scenarios#button">Red button</a>, <a href="/scenarios#crocodile">Crocodile placement</a>, <a href="/pouring">Pouring</a>.</p></noscript>
+  <noscript><p>Enable JavaScript to browse trials and camera replays.</p></noscript>
   <p id="notice" role="status">Loading recorded trials…</p>
   <section id="history" aria-labelledby="history-title">
     <div class="history-heading"><h2 id="history-title">Run history</h2><button type="button" id="more" aria-controls="historyRows" hidden></button></div>
     <div class="table" tabindex="0" role="region" aria-label="Recorded trials across tasks">
-      <table><thead><tr><th>Started</th><th>Task</th><th>Robot arm</th><th>Model</th><th>Reasoning</th><th>Score / 100</th><th>Wall time</th><th>Replay</th></tr></thead><tbody id="historyRows"></tbody></table>
+      <table><thead><tr><th>Started</th><th>Task</th><th>Robot arm</th><th>Model</th><th>Reasoning</th><th>Revision</th><th>Status</th><th>Score / 100</th><th>Wall time</th><th>Replay</th></tr></thead><tbody id="historyRows"></tbody></table>
     </div>
   </section>
 </main>
@@ -90,24 +93,24 @@
 </template>
 <script>
   "use strict";
-  const tasks = [
-    { id: "button", name: "Press the red button", short: "Red button", description: "Press with the gripper until the button flashes.", href: "/scenarios#button", camera: "wrist" },
-    { id: "crocodile", name: "Place the crocodile", short: "Crocodile placement", description: "Set the whole toy inside the marked rectangle.", href: "/scenarios#crocodile", camera: "left" },
-    { id: "pouring", name: "Pour into the cup", short: "Pouring", description: "Transfer 21 beads from the blue cup into the orange cup.", href: "/pouring", camera: "front" }
-  ];
   const byId = id => document.getElementById(id);
-  const taskById = Object.fromEntries(tasks.map(task => [task.id, task]));
+  let tasks = [], taskById = {};
   const capitalize = value => value ? value[0].toUpperCase() + value.slice(1) : "";
   const dateFormat = new Intl.DateTimeFormat(undefined, {month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"});
   let runs = [], expanded = false, signature = null;
   const initialCount = 6;
 
-  for (const task of tasks) {
-    const card = byId("card").content.firstElementChild.cloneNode(true);
-    card.id = "card-" + task.id; card.dataset.task = task.id; card.href = task.href;
-    card.querySelector("h3").textContent = task.name;
-    card.querySelector(".criterion").textContent = task.description;
-    byId("tasks").append(card);
+  async function loadCatalog() {
+    if (tasks.length) return;
+    tasks = await getJson("/scenarios/catalog.json");
+    taskById = Object.fromEntries(tasks.map(task => [task.id, task]));
+    for (const task of tasks) {
+      const card = byId("card").content.firstElementChild.cloneNode(true);
+      card.id = "card-" + task.id; card.dataset.task = task.id; card.href = task.href;
+      card.querySelector("h3").textContent = task.name;
+      card.querySelector(".criterion").textContent = task.description;
+      byId("tasks").append(card);
+    }
   }
   function duration(seconds) {
     if (!Number.isFinite(seconds)) return "—";
@@ -119,6 +122,14 @@
     return match ? "GPT-" + match[1] + " " + capitalize(match[2]) : model || "—";
   }
   function score(run) { return Number.isFinite(run.score) ? run.score.toFixed(1) : "—"; }
+  function status(run) {
+    if (run.phase === "finished") {
+      if (run.task === "pouring") return "Finished";
+      if (run.success === true) return "Passed";
+      if (run.success === false) return "Failed";
+    }
+    return capitalize(run.phase) || "Pending";
+  }
   function detailsUrl(run) {
     return run.task === "pouring" ? "/pouring" : "/scenarios?run=" + encodeURIComponent(run.run_id) + "#" + run.task;
   }
@@ -131,7 +142,7 @@
       if (latest) {
         if (latest.phase !== "finished") result = capitalize(latest.phase) || "Pending";
         else if (task.id === "pouring") result = score(latest) + " / 100";
-        else result = latest.success === true ? "Passed" : latest.success === false ? "Failed" : "Pending";
+        else result = status(latest) + " · " + score(latest) + " / 100";
         if (task.id === "pouring")
           photo = "/frame/front.jpg?view=codex&s=1&run=" + encodeURIComponent(latest.run_id);
         else if (latest.seq > 0)
@@ -144,6 +155,8 @@
         img.onload = () => { img.hidden = false; };
         img.onerror = () => { img.hidden = true; };
         img.src = photo;
+      } else if (!photo) {
+        img.hidden = true; img.removeAttribute("src");
       }
     }
     byId("total").textContent = tasks.length + " tasks · " + runs.length + " recorded " + (runs.length === 1 ? "run" : "runs");
@@ -156,9 +169,16 @@
       const values = [
         time && !Number.isNaN(time.getTime()) ? dateFormat.format(time) : "—",
         taskById[run.task].short, run.arm_label || "—", modelName(run.model),
-        capitalize(run.reasoning_effort) || "—", score(run), duration(run.duration_seconds)
+        capitalize(run.reasoning_effort) || "—", run.revision || (run.skill_version || "").split("-").at(-1) || "—",
+        status(run), score(run), duration(run.duration_seconds)
       ];
-      for (const value of values) row.insertCell().textContent = value;
+      for (const [i, value] of values.entries()) {
+        const cell = row.insertCell();
+        if (i === 1 && run.task !== "pouring") {
+          const link = document.createElement("a");
+          link.href = detailsUrl(run); link.textContent = value; cell.append(link);
+        } else cell.textContent = value;
+      }
       const cell = row.insertCell();
       const view = document.createElement("a");
       view.href = run.replay_url || detailsUrl(run);
@@ -179,6 +199,7 @@
   }
   async function refresh() {
     try {
+      await loadCatalog();
       const [pouring, scenarios] = await Promise.all([getJson("/api/history"), getJson("/api/scenarios")]);
       const next = [...pouring.runs, ...scenarios].filter(run => Object.hasOwn(taskById, run.task));
       next.sort((a,b) => (Date.parse(b.started_at) || 0) - (Date.parse(a.started_at) || 0));

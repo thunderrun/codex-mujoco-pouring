@@ -1,0 +1,7 @@
+{
+  "observation": "All four blocks are stacked and the gripper is open, but the arm obscures the overhead view.",
+  "action": "park",
+  "u": 0,
+  "v": 0,
+  "angle": 0
+}

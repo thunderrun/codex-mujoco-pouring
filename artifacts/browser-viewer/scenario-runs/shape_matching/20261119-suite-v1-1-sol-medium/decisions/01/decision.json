@@ -1,0 +1,7 @@
+{
+  "observation": "The red triangle’s raised handle is at (405, 290), and its upper-left socket is empty.",
+  "action": "pick",
+  "u": 405,
+  "v": 290,
+  "angle": 90
+}

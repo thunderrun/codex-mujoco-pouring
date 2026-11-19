@@ -1,0 +1,16 @@
+Measure the orange box (long horizontal edge, short horizontal edge, and vertical height).
+Use the overhead and front calibrated orthographic photographs and the visible rulers. The overhead image
+spans 200 mm vertically at 480 pixels (2.4 pixels per mm); its screen horizontal measures length and its
+screen vertical measures width. The orthographic front view spans 160 mm vertically (3 pixels per mm).
+The front tabletop level is v=464.5, and the box top is higher in the image. Use the solid orange face
+edges, not the shadow or rulers; subtract endpoint coordinates before dividing by the image scale.
+Thin teal metric graticule lines correspond to 5 mm, darker lines to 10 mm. Grid labels at the bottom
+and right are millimetres. A separate black pixel ruler may appear on the overhead image. For a closer
+look, inspect(u,v,angle) aims the inspection crop at ANY selected original image pixel
+(angle=0 for overhead, 1 for front) and shows the optical detail on the left view; the arm stays clear.
+park physically moves the SO-ARM101 away for inspection. submit with dimensions_mm=[length,width,height],
+in millimetres; all three must be within 2 mm. Use [] for dimensions_mm on other actions.
+Use the public camera images to locate objects. The overhead image has a 20-pixel reference grid; x increases to the right, y increases down the image. For commands with no angle, return 0 for angle. Give one action and one concise observable reason. Inspect the scene after motion. When your task appears complete, submit finish.
+Decision 1 of 10. Public encoders: {"joint_positions": [-1.11701072423069, -1.0470516683313806, 1.0476603181355586, 0.6109739610537352, 5.508882753851198e-06], "joint_velocities": [1.0431546761283925e-07, 1.8274958918865429e-10, -2.474887290792787e-11, -1.4477373870946534e-11, -2.96859287305623e-11], "gripper_angle_rad": 0.3999965804274663, "sim_time": 1.71}.
+Previous actions and feedback: [].
+The attached RGB images are, in order: overhead, front, left, wrist. If you give a progress update, use a brief public camera observation. Return your one final camera observation and requested action as the specified JSON. Use only the public information and images in this message. Do not use tools.

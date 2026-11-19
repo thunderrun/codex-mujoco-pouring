@@ -1,0 +1,13 @@
+Use the SO-ARM101's mounted marker to write HELLO WORLD, legible, inside the black
+rectangle on the paper. Uppercase block letters on one line with a clear word gap work well. Read the current
+640×480 overhead image to choose your letter positions. draw executes the polylines you explicitly author:
+strokes=[[[u,v],[u,v],...], ...]. Each polyline is one uninterrupted nib-down stroke;
+the pen lifts between polylines. Author the shape of every letter yourself. Use your available width,
+leave margins, separate adjacent letters and use an extra gap between words. Each draw can contain
+up to 32 polylines; you may draw several letters or words together. The controller uses calibrated
+pen motion; ink appears only where the nib makes physical contact. Use park if needed for a clear
+image. Submit finish when visually satisfied. Use [] for strokes on other actions.
+Use the public camera images to locate objects. The overhead image has a 20-pixel reference grid; x increases to the right, y increases down the image. For commands with no angle, return 0 for angle. Give one action and one concise observable reason. Inspect the scene after motion. When your task appears complete, submit finish.
+Decision 1 of 18. Public encoders: {"joint_positions": [-1.1170107242306808, -1.0470516683310769, 1.0476603181355735, 0.6109739610537345, 5.508882752569436e-06], "joint_velocities": [1.0431514640451156e-07, 1.7038705947861384e-10, -2.555072505231592e-11, -1.4319455545588682e-11, -2.944316574332912e-11], "gripper_angle_rad": 0.39999658042746644, "sim_time": 1.71}.
+Previous actions and feedback: [].
+The attached RGB images are, in order: overhead, front, left, wrist. If you give a progress update, use a brief public camera observation. Return your one final camera observation and requested action as the specified JSON. Use only the public information and images in this message. Do not use tools.

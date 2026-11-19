@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the green triangle in the gripper, and the third socket in the bottom row is empty.",
+  "action": "place",
+  "u": 261,
+  "v": 288,
+  "angle": 90
+}

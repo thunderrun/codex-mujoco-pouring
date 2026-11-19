@@ -1,0 +1,7 @@
+{
+  "observation": "Yellow rests on the red and blue stack, and the loose green block’s center mark is visible overhead.",
+  "action": "pick",
+  "u": 321,
+  "v": 284,
+  "angle": 0
+}

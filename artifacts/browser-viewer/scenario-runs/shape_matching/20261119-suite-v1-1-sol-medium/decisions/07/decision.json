@@ -1,0 +1,7 @@
+{
+  "observation": "The yellow circle is seated in the top row, and the loose green hexagon’s white handle is at (406, 237).",
+  "action": "pick",
+  "u": 406,
+  "v": 237,
+  "angle": 90
+}

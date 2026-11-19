@@ -1,0 +1,7 @@
+{
+  "observation": "The green triangle is seated, and the loose yellow square’s white handle is visible at (448, 290).",
+  "action": "pick",
+  "u": 448,
+  "v": 290,
+  "angle": 90
+}

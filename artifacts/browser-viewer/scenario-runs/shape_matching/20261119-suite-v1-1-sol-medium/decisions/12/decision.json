@@ -1,0 +1,7 @@
+{
+  "observation": "The wrist view shows the blue circle in the gripper, and the second socket from the left in the bottom row is empty.",
+  "action": "place",
+  "u": 210,
+  "v": 288,
+  "angle": 90
+}
