@@ -8,8 +8,7 @@ import numpy as np
 
 from robo_mj_bench.protocol import BadRequest, MAX_JOINT_SPEED, TIMESTEP
 from robo_mj_bench.scene import yam_scene
-from robo_mj_bench.task_simulation import TaskSimulation
-from robo_mj_bench.tasks.pouring import PouringTask
+from pouring_score import FinalCapturePouringTask, PouringSimulation
 
 
 MODEL_DIR = Path(__file__).resolve().parent / "models" / "robotstudio_so101"
@@ -55,7 +54,7 @@ def _pouring_scene(task_id):
     return root
 
 
-class SO101PouringSimulation(TaskSimulation):
+class SO101PouringSimulation(PouringSimulation):
     robot_id = "robotstudio_so101"
     scene_factory = staticmethod(_pouring_scene)
     home_joints = HOME_JOINTS_RAD
@@ -112,4 +111,4 @@ class SO101PouringSimulation(TaskSimulation):
 
 
 def create_so101_pouring(seed, *, task=None):
-    return SO101PouringSimulation(PouringTask() if task is None else task, seed)
+    return SO101PouringSimulation(FinalCapturePouringTask() if task is None else task, seed)

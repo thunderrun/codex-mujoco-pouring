@@ -6,24 +6,24 @@ Watch Codex operate a simulated SO-ARM101 or I2RT YAM arm in MuJoCo. The goal is
 
 ## Results
 
-All twelve trials used Standard inference speed, the same starting layout and the local `tabletop-v2` evaluator. The four initial camera views matched across trials for each arm. An independent physics replay verified each result. Wall time includes model calls, arm motion, grading, verification and video export.
+All twelve trials used Standard inference speed and the same starting layout. The four initial camera views matched across trials for each arm. The table reports final-capture scores from independent physics replays using `final-capture-v3`. Wall time includes model calls, arm motion, grading, verification and video export.
 
 | Arm | Model | Effort | Pouring skills | Beads in target | Outside at finish | Counted as spilled | Score / 100 | Wall time | Replay |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| SO-ARM101 | GPT-6.2 Sol | Medium | v2 | 21 / 21 | 0 | 3 | 99.0 | 2:49 | [Watch](artifacts/browser-viewer/codex-runs/20261119-144751-586310/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Sol | Max | v2 | 21 / 21 | 0 | 3 | 99.0 | 4:36 | [Watch](artifacts/browser-viewer/codex-runs/20261119-143835-613508/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Astra | Medium | v2 | 19 / 21 | 2 | 4 | 90.5 | 3:50 | [Watch](artifacts/browser-viewer/codex-runs/20261119-145041-728970/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Astra | Max | v2 | 21 / 21 | 0 | 3 | 99.0 | 4:33 | [Watch](artifacts/browser-viewer/codex-runs/20261119-144315-759105/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Sol | Medium | v1 | 10 / 21 | 11 | 12 | 47.6 | 3:13 | [Watch](artifacts/browser-viewer/codex-runs/20261119-135814-152629/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Sol | Max | v1 | 12 / 21 | 9 | 10 | 57.1 | 5:38 | [Watch](artifacts/browser-viewer/codex-runs/20261119-140806-676657/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Astra | Medium | v1 | 8 / 21 | 13 | 15 | 38.1 | 3:02 | [Watch](artifacts/browser-viewer/codex-runs/20261119-141346-823451/replay.mp4) |
-| SO-ARM101 | GPT-6.2 Astra | Max | v1 | 15 / 21 | 6 | 10 | 71.4 | 4:46 | [Watch](artifacts/browser-viewer/codex-runs/20261119-141651-967847/replay.mp4) |
-| I2RT YAM | GPT-6.2 Sol | Medium | v1 | 8 / 21 | 13 | 15 | 38.1 | 3:11 | [Watch](artifacts/browser-viewer/codex-runs/20261119-112142-227580/replay.mp4) |
-| I2RT YAM | GPT-6.2 Sol | Max | v1 | 8 / 21 | 13 | 16 | 38.1 | 6:03 | [Watch](artifacts/browser-viewer/codex-runs/20261119-132720-862589/replay.mp4) |
-| I2RT YAM | GPT-6.2 Astra | Medium | v1 | 5 / 21 | 16 | 18 | 23.8 | 3:22 | [Watch](artifacts/browser-viewer/codex-runs/20261119-112916-139006/replay.mp4) |
-| I2RT YAM | GPT-6.2 Astra | Max | v1 | 9 / 21 | 12 | 17 | 42.9 | 4:31 | [Watch](artifacts/browser-viewer/codex-runs/20261119-133326-326651/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Sol | Medium | v2 | 21 / 21 | 0 | 0 | 100.0 | 2:49 | [Watch](artifacts/browser-viewer/codex-runs/20261119-144751-586310/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Sol | Max | v2 | 21 / 21 | 0 | 0 | 100.0 | 4:36 | [Watch](artifacts/browser-viewer/codex-runs/20261119-143835-613508/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Astra | Medium | v2 | 19 / 21 | 2 | 2 | 90.5 | 3:50 | [Watch](artifacts/browser-viewer/codex-runs/20261119-145041-728970/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Astra | Max | v2 | 21 / 21 | 0 | 0 | 100.0 | 4:33 | [Watch](artifacts/browser-viewer/codex-runs/20261119-144315-759105/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Sol | Medium | v1 | 10 / 21 | 11 | 11 | 47.6 | 3:13 | [Watch](artifacts/browser-viewer/codex-runs/20261119-135814-152629/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Sol | Max | v1 | 12 / 21 | 9 | 9 | 57.1 | 5:38 | [Watch](artifacts/browser-viewer/codex-runs/20261119-140806-676657/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Astra | Medium | v1 | 8 / 21 | 13 | 13 | 38.1 | 3:02 | [Watch](artifacts/browser-viewer/codex-runs/20261119-141346-823451/replay.mp4) |
+| SO-ARM101 | GPT-6.2 Astra | Max | v1 | 15 / 21 | 6 | 6 | 71.4 | 4:46 | [Watch](artifacts/browser-viewer/codex-runs/20261119-141651-967847/replay.mp4) |
+| I2RT YAM | GPT-6.2 Sol | Medium | v1 | 8 / 21 | 13 | 13 | 38.1 | 3:11 | [Watch](artifacts/browser-viewer/codex-runs/20261119-112142-227580/replay.mp4) |
+| I2RT YAM | GPT-6.2 Sol | Max | v1 | 8 / 21 | 13 | 13 | 38.1 | 6:03 | [Watch](artifacts/browser-viewer/codex-runs/20261119-132720-862589/replay.mp4) |
+| I2RT YAM | GPT-6.2 Astra | Medium | v1 | 5 / 21 | 16 | 16 | 23.8 | 3:22 | [Watch](artifacts/browser-viewer/codex-runs/20261119-112916-139006/replay.mp4) |
+| I2RT YAM | GPT-6.2 Astra | Max | v1 | 9 / 21 | 12 | 12 | 42.9 | 4:31 | [Watch](artifacts/browser-viewer/codex-runs/20261119-133326-326651/replay.mp4) |
 
-On the repeated SO-ARM101 layout, Sol Medium went from 10 to 21 captured beads, Sol Max from 12 to 21, Astra Medium from 8 to 19, and Astra Max from 15 to 21. The three 21-bead trials scored 99.0 because three beads registered as spilled during the pour and later landed in the receiver.
+On the repeated SO-ARM101 layout, Sol Medium went from 10 to 21 captured beads, Sol Max from 12 to 21, Astra Medium from 8 to 19, and Astra Max from 15 to 21. The three trials that captured all 21 beads each earned 100.0/100 with zero spills. Astra Medium earned 90.5/100 with two spilled beads.
 
 ### What changed in the second SO-ARM101 experiment
 
@@ -33,15 +33,13 @@ The second controller estimates the lowest point of the source rim from arm geom
 
 The revised operator skill asks the model to inspect the stream, hold its tilt if beads are draining and adjust its aim if it sees a persistent miss while beads remain. After each tilt, the next decision also receives four chronological crops of the overhead camera, centered on the model’s chosen aim. Both models used the same skill and controller. Each model and reasoning-effort combination was tested once per revision on this layout, so these results compare the combined changes on that layout. [Pouring skill](artifacts/browser-viewer/skills/so101-pour-v2/SKILL.md) · [Motion controller](artifacts/browser-viewer/so101_controls_v2.py)
 
-Six separate scripted checks isolate the motion change by giving both controllers the same image-derived points and tilt angles for each layout. The revised controller caught 21 beads in five layouts. On seed 166, the blue cup knocked the receiver aside and captured zero, down from six. The mean score across all six rose from 37.3 to 83.0. These checks use scripted decisions and are listed separately from the model runs. Run `MUJOCO_GL=egl python artifacts/browser-viewer/check_so101_skills.py` to reproduce them. [Scripted comparisons](artifacts/browser-viewer/check_so101_skills.py)
+Six separate scripted checks isolate the motion change by giving both controllers the same image-derived points and tilt angles for each layout. The revised controller caught 21 beads in five layouts. On seed 166, the blue cup knocked the receiver aside and captured zero, down from six. The mean score across all six rose from 37.3 to 83.3. These checks use scripted decisions and are listed separately from the model runs. Run `MUJOCO_GL=egl python artifacts/browser-viewer/check_so101_skills.py` to reproduce them. [Scripted comparisons](artifacts/browser-viewer/check_so101_skills.py)
 
 ### How scoring works
 
-A settled, valid partial pour earns 100 × the fraction of all 21 beads in the orange cup, capped at 99. Full credit requires at least 90% in the target, at most one spilled bead, and a successful stability check over the terminal window. For partial credit, both cups must be upright, at rest, released and separate, and all beads still in play must have settled. The spill count records beads seen spilling during the run, including ones that later land in a cup.
+For a valid finished pour, the score is **100 × beads in the orange cup ÷ 21**. Capturing all 21 beads earns 100.0, and capturing 19 earns 90.5. Both cups must be upright, settled, separate and released. Beads still in play must also settle. An unsafe finish or an invalid final state earns zero.
 
-The scene has no floor below the table. The revised scorer treats a spilled bead that has fallen completely below the tabletop and is moving downward as lost. That bead earns no transfer credit and counts as spilled. Other beads still have to settle, including beads rolling across the table.
-
-For SO-ARM101 Sol Medium, the revised scorer awards **47.6/100** for 10 captured beads. Replaying all 14 decisions reproduced the original final positions. [Verified grading comparison](artifacts/browser-viewer/codex-runs/20261119-135814-152629/verification-v2.json) · [Full run history](artifacts/browser-viewer/codex-runs/run-history.json)
+The spill count tracks individual beads that touch the bare tabletop, fall below the table, or finish outside both cups. A bead striking the inside base of the orange cup registers as cup contact. A bead that spills and later lands in the receiver counts once in each measure. The grader also records a separate task-success flag, which requires at least 90% captured, at most one spill, and a stable terminal window. [Full results and run history](artifacts/browser-viewer/codex-runs/run-history.json)
 
 ## How the trial works
 
@@ -73,7 +71,7 @@ Launching new trials requires a working Linux EGL graphics driver, a systemd use
 
 ## Reproduce the archived scores
 
-In the activated environment, replay the decisions from the archived runs in fresh, unrendered physics. The command uses the recorded actions and initial layout. For trials recorded with the upstream evaluator, it checks both rules and saves the revised grade and verification alongside the originals. For new trials, it verifies the recorded `tabletop-v2` grade.
+In the activated environment, replay the decisions from the archived runs in fresh, unrendered physics. The command uses the recorded actions and initial layout. For each archived trial, the verifier checks the recorded physics and computes the final-capture grade from a fresh replay. It saves the verified grade alongside the recording. For trials recorded with `final-capture-v3`, it checks the recorded grade directly.
 
 ```bash
 (

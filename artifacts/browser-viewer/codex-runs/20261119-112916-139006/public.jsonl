@@ -58,4 +58,4 @@
 {"id": 58, "time": "2026-11-19T11:32:17.836+08:00", "decision": 12, "sim_time": 38.404, "frame_seq": 199, "kind": "system", "text": "Codex is inspecting the four camera images."}
 {"id": 59, "time": "2026-11-19T11:32:25.207+08:00", "decision": 12, "sim_time": 38.404, "frame_seq": 199, "kind": "codex", "text": "Both cups are upright and the open gripper is clear. The blue cup appears empty, with some beads in the orange cup and others scattered on the table."}
 {"id": 60, "time": "2026-11-19T11:32:28.105+08:00", "decision": 12, "sim_time": 38.404, "frame_seq": 199, "kind": "command", "text": "finish"}
-{"id": 61, "time": "2026-11-19T11:32:29.281+08:00", "decision": 12, "sim_time": 39.404, "frame_seq": 205, "kind": "result", "text": "5 of 21 beads in the orange cup · 0 in the blue cup · 16 outside at finish · 18 counted as spilled during the run · score 23.8/100"}
+{"id": 61, "time": "2026-11-19T11:32:29.281+08:00", "decision": 12, "sim_time": 39.404, "frame_seq": 205, "kind": "result", "text": "5 of 21 beads in the orange cup · 0 in the blue cup · 16 outside at finish · 16 counted as spilled during the run · score 23.8/100"}

@@ -11,17 +11,11 @@ from pathlib import Path
 
 from arm_config import ARM_LABELS, LEGACY_SKILL
 from codex_feed import RUNS
+from public_grading import effective_grade, format_outcome, has_newer_grade, read_json
 
 RUN_ID = re.compile(r"[0-9]{8}-[0-9]{6}-[0-9]{6}")
 FILENAME = "run-history.json"
-HISTORY_VERSION = 4
-
-
-def read_json(path):
-    try:
-        return json.loads(path.read_text())
-    except FileNotFoundError:
-        return {}
+HISTORY_VERSION = 5
 
 
 @contextmanager
@@ -53,22 +47,6 @@ def is_active(folder):
             return folder.name.encode() in Path("/proc", pid, "cmdline").read_bytes().split(b"\0")
         except FileNotFoundError:
             return False
-
-
-def format_outcome(report):
-    metrics = report["metrics"]
-    return (f'{metrics["beads_in_target"]} of {metrics["beads_total"]} beads in the orange cup · '
-            f'{metrics["beads_in_source"]} in the blue cup · {metrics["beads_outside_cups"]} outside at finish · '
-            f'{metrics["beads_spilled"]} counted as spilled during the run · score {report["score"]:.1f}/100')
-
-
-def verified_rescore(folder):
-    report = read_json(folder / "private" / "grading-v2.json")
-    if report:
-        verification = read_json(folder / "verification-v2.json")
-        if verification.get("verified"):
-            return report, verification
-    return None
 
 
 def summarize(folder):
@@ -112,13 +90,8 @@ def summarize(folder):
             duration_scope = "to_error"
     elif phase == "running":
         duration_scope = "running"
-    grading = read_json(folder / "private" / "grading.json")
-    verification = read_json(folder / "verification.json")
-    revision = verified_rescore(folder) if phase == "finished" else None
-    revision_fields = {}
-    if revision:
-        revision_fields["original_score"] = grading["score"]
-        grading, verification = revision
+    grading, verification = effective_grade(folder)
+    if grading and phase == "finished":
         result = format_outcome(grading)
     effort = settings.get("reasoning_effort")
     if not effort and status.get("reasoning") == "Standard":
@@ -140,7 +113,6 @@ def summarize(folder):
         "result": result, "score": grading.get("score"), "success": grading.get("success"),
         "metrics": grading.get("metrics", {}), "sim_seconds": grading.get("sim_time"),
         "scoring_version": scoring_version,
-        **revision_fields,
         "verified": verification.get("verified"),
         "replay_url": f"/runs/{folder.name}/replay.mp4" if (folder / "replay.mp4").is_file() else None,
     }
@@ -158,6 +130,7 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
             old = {}  # Rebuild from each episode's authoritative artifacts.
         records = {r["run_id"]: dict(r) for r in old.get("runs", [])}
         for record in records.values():
+            record.pop("original_score", None)
             arm = record.setdefault("arm", "yam")
             record["arm_label"] = ARM_LABELS.get(arm, arm)
             record.setdefault("skill_version", LEGACY_SKILL.get(arm))
@@ -168,7 +141,9 @@ def sync_history(runs=RUNS, *, folder=None, full=False):
             # whose verification/export may have landed since the last snapshot.
             folders = [runs / rid for rid, r in records.items()
                        if r["phase"] == "running" or
-                       (r["phase"] == "finished" and (r["verified"] is None or not r["replay_url"]))]
+                       (r["phase"] == "finished" and
+                        (r["verified"] is None or not r["replay_url"] or
+                         has_newer_grade(runs / rid, r.get("scoring_version"))))]
             if folder is not None:
                 folders.append(folder)
             else:

@@ -17,8 +17,8 @@ from arm_config import ARM_LABELS, DEFAULT_ARM, DEFAULT_SKILL, checked_skill
 from codex_actor import DEFAULT_REASONING_EFFORT, MODEL, REASONING_EFFORTS, decide, run_settings
 from codex_feed import CURRENT, RUNS, empty
 from pouring_arms import load_pouring_arm
-from pouring_score import TABLETOP_SCORER
-from run_history import format_outcome, runner_lease, sync_history
+from public_grading import format_outcome
+from run_history import runner_lease, sync_history
 
 CAMERAS = ("front", "overhead", "left", "wrist")
 DECISION_LIMIT = 20
@@ -238,7 +238,6 @@ def run_episode(root, settings, seed, seed_from):
             event("system", "The decision limit was reached. Grading the current pose.")
         update(phase="running", caption="Grading the settled cups")
         report = sim.finish()
-        report["scoring_version"] = TABLETOP_SCORER
         capture()
         save(root / "private" / "grading.json", report)
         outcome = format_outcome(report)

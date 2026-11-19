@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "runs": [
     {
       "run_id": "20261119-145041-728970",
@@ -20,7 +20,7 @@
       "reasoning_effort": "medium",
       "layout_reference_run": "20261119-144751-586310",
       "decision_count": 13,
-      "result": "19 of 21 beads in the orange cup · 0 in the blue cup · 2 outside at finish · 4 counted as spilled during the run · score 90.5/100",
+      "result": "19 of 21 beads in the orange cup · 0 in the blue cup · 2 outside at finish · 2 counted as spilled during the run · score 90.5/100",
       "score": 90.47619047619048,
       "success": false,
       "metrics": {
@@ -29,7 +29,7 @@
         "beads_in_target": 19,
         "beads_in_source": 0,
         "beads_outside_cups": 2,
-        "beads_spilled": 4,
+        "beads_spilled": 2,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -41,7 +41,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 27.555999999995606,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-145041-728970/replay.mp4"
     },
@@ -64,16 +64,16 @@
       "reasoning_effort": "medium",
       "layout_reference_run": "20261119-144315-759105",
       "decision_count": 12,
-      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 3 counted as spilled during the run · score 99.0/100",
-      "score": 99.0,
-      "success": false,
+      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 0 counted as spilled during the run · score 100.0/100",
+      "score": 100.0,
+      "success": true,
       "metrics": {
         "approximation": "granular_transfer_proxy",
         "beads_total": 21,
         "beads_in_target": 21,
         "beads_in_source": 0,
         "beads_outside_cups": 0,
-        "beads_spilled": 3,
+        "beads_spilled": 0,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -85,7 +85,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 26.905999999995966,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-144751-586310/replay.mp4"
     },
@@ -108,16 +108,16 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-143835-613508",
       "decision_count": 12,
-      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 3 counted as spilled during the run · score 99.0/100",
-      "score": 99.0,
-      "success": false,
+      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 0 counted as spilled during the run · score 100.0/100",
+      "score": 100.0,
+      "success": true,
       "metrics": {
         "approximation": "granular_transfer_proxy",
         "beads_total": 21,
         "beads_in_target": 21,
         "beads_in_source": 0,
         "beads_outside_cups": 0,
-        "beads_spilled": 3,
+        "beads_spilled": 0,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -129,7 +129,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 26.905999999995966,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-144315-759105/replay.mp4"
     },
@@ -152,16 +152,16 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-141651-967847",
       "decision_count": 12,
-      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 3 counted as spilled during the run · score 99.0/100",
-      "score": 99.0,
-      "success": false,
+      "result": "21 of 21 beads in the orange cup · 0 in the blue cup · 0 outside at finish · 0 counted as spilled during the run · score 100.0/100",
+      "score": 100.0,
+      "success": true,
       "metrics": {
         "approximation": "granular_transfer_proxy",
         "beads_total": 21,
         "beads_in_target": 21,
         "beads_in_source": 0,
         "beads_outside_cups": 0,
-        "beads_spilled": 3,
+        "beads_spilled": 0,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -173,7 +173,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 26.905999999995966,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-143835-613508/replay.mp4"
     },
@@ -196,7 +196,7 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-141346-823451",
       "decision_count": 12,
-      "result": "15 of 21 beads in the orange cup · 0 in the blue cup · 6 outside at finish · 10 counted as spilled during the run · score 71.4/100",
+      "result": "15 of 21 beads in the orange cup · 0 in the blue cup · 6 outside at finish · 6 counted as spilled during the run · score 71.4/100",
       "score": 71.42857142857143,
       "success": false,
       "metrics": {
@@ -205,7 +205,7 @@
         "beads_in_target": 15,
         "beads_in_source": 0,
         "beads_outside_cups": 6,
-        "beads_spilled": 10,
+        "beads_spilled": 6,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -217,7 +217,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 25.243999999996888,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-141651-967847/replay.mp4"
     },
@@ -240,7 +240,7 @@
       "reasoning_effort": "medium",
       "layout_reference_run": "20261119-140806-676657",
       "decision_count": 12,
-      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 15 counted as spilled during the run · score 38.1/100",
+      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 13 counted as spilled during the run · score 38.1/100",
       "score": 38.095238095238095,
       "success": false,
       "metrics": {
@@ -249,7 +249,7 @@
         "beads_in_target": 8,
         "beads_in_source": 0,
         "beads_outside_cups": 13,
-        "beads_spilled": 15,
+        "beads_spilled": 13,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -261,7 +261,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 25.243999999996888,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-141346-823451/replay.mp4"
     },
@@ -284,8 +284,8 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-135814-152629",
       "decision_count": 13,
-      "result": "12 of 21 beads in the orange cup · 0 in the blue cup · 9 outside at finish · 10 counted as spilled during the run · score 57.1/100",
-      "score": 57.14285714285714,
+      "result": "12 of 21 beads in the orange cup · 0 in the blue cup · 9 outside at finish · 9 counted as spilled during the run · score 57.1/100",
+      "score": 57.142857142857146,
       "success": false,
       "metrics": {
         "approximation": "granular_transfer_proxy",
@@ -293,7 +293,7 @@
         "beads_in_target": 12,
         "beads_in_source": 0,
         "beads_outside_cups": 9,
-        "beads_spilled": 10,
+        "beads_spilled": 9,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -305,7 +305,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 27.263999999995768,
-      "scoring_version": "tabletop-v2",
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-140806-676657/replay.mp4"
     },
@@ -328,8 +328,8 @@
       "reasoning_effort": "medium",
       "layout_reference_run": "20261119-133326-326651",
       "decision_count": 14,
-      "result": "10 of 21 beads in the orange cup · 0 in the blue cup · 11 outside at finish · 12 counted as spilled during the run · score 47.6/100",
-      "score": 47.61904761904761,
+      "result": "10 of 21 beads in the orange cup · 0 in the blue cup · 11 outside at finish · 11 counted as spilled during the run · score 47.6/100",
+      "score": 47.61904761904762,
       "success": false,
       "metrics": {
         "approximation": "granular_transfer_proxy",
@@ -337,7 +337,7 @@
         "beads_in_target": 10,
         "beads_in_source": 0,
         "beads_outside_cups": 11,
-        "beads_spilled": 12,
+        "beads_spilled": 11,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -349,8 +349,7 @@
         "all_beads_stable": false
       },
       "sim_seconds": 27.913999999995408,
-      "scoring_version": "tabletop-v2",
-      "original_score": 0.0,
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-135814-152629/replay.mp4"
     },
@@ -373,7 +372,7 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-132720-862589",
       "decision_count": 12,
-      "result": "9 of 21 beads in the orange cup · 0 in the blue cup · 12 outside at finish · 17 counted as spilled during the run · score 42.9/100",
+      "result": "9 of 21 beads in the orange cup · 0 in the blue cup · 12 outside at finish · 12 counted as spilled during the run · score 42.9/100",
       "score": 42.857142857142854,
       "success": false,
       "metrics": {
@@ -382,7 +381,7 @@
         "beads_in_target": 9,
         "beads_in_source": 0,
         "beads_outside_cups": 12,
-        "beads_spilled": 17,
+        "beads_spilled": 12,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -394,8 +393,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 39.40400000000219,
-      "scoring_version": "tabletop-v2",
-      "original_score": 42.857142857142854,
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-133326-326651/replay.mp4"
     },
@@ -418,7 +416,7 @@
       "reasoning_effort": "max",
       "layout_reference_run": "20261119-112916-139006",
       "decision_count": 12,
-      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 16 counted as spilled during the run · score 38.1/100",
+      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 13 counted as spilled during the run · score 38.1/100",
       "score": 38.095238095238095,
       "success": false,
       "metrics": {
@@ -427,7 +425,7 @@
         "beads_in_target": 8,
         "beads_in_source": 0,
         "beads_outside_cups": 13,
-        "beads_spilled": 16,
+        "beads_spilled": 13,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -439,8 +437,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 39.40400000000219,
-      "scoring_version": "tabletop-v2",
-      "original_score": 38.095238095238095,
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-132720-862589/replay.mp4"
     },
@@ -463,8 +460,8 @@
       "reasoning_effort": "medium",
       "layout_reference_run": "20261119-112142-227580",
       "decision_count": 12,
-      "result": "5 of 21 beads in the orange cup · 0 in the blue cup · 16 outside at finish · 18 counted as spilled during the run · score 23.8/100",
-      "score": 23.809523809523807,
+      "result": "5 of 21 beads in the orange cup · 0 in the blue cup · 16 outside at finish · 16 counted as spilled during the run · score 23.8/100",
+      "score": 23.80952380952381,
       "success": false,
       "metrics": {
         "approximation": "granular_transfer_proxy",
@@ -472,7 +469,7 @@
         "beads_in_target": 5,
         "beads_in_source": 0,
         "beads_outside_cups": 16,
-        "beads_spilled": 18,
+        "beads_spilled": 16,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -484,8 +481,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 39.40400000000219,
-      "scoring_version": "tabletop-v2",
-      "original_score": 23.809523809523807,
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-112916-139006/replay.mp4"
     },
@@ -508,7 +504,7 @@
       "reasoning_effort": "medium",
       "layout_reference_run": null,
       "decision_count": 12,
-      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 15 counted as spilled during the run · score 38.1/100",
+      "result": "8 of 21 beads in the orange cup · 0 in the blue cup · 13 outside at finish · 13 counted as spilled during the run · score 38.1/100",
       "score": 38.095238095238095,
       "success": false,
       "metrics": {
@@ -517,7 +513,7 @@
         "beads_in_target": 8,
         "beads_in_source": 0,
         "beads_outside_cups": 13,
-        "beads_spilled": 15,
+        "beads_spilled": 13,
         "total_mass_kg": 0.021,
         "released": true,
         "cups_stable": true,
@@ -529,8 +525,7 @@
         "all_beads_stable": true
       },
       "sim_seconds": 39.40400000000219,
-      "scoring_version": "tabletop-v2",
-      "original_score": 38.095238095238095,
+      "scoring_version": "final-capture-v3",
       "verified": true,
       "replay_url": "/runs/20261119-112142-227580/replay.mp4"
     }

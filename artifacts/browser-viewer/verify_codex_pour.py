@@ -9,7 +9,7 @@ import mujoco
 import numpy as np
 from arm_config import LEGACY_SKILL
 from pouring_arms import load_pouring_arm
-from pouring_score import TABLETOP_SCORER, UPSTREAM_SCORER
+from pouring_score import FINAL_CAPTURE_SCORER, TABLETOP_SCORER, UPSTREAM_SCORER
 
 
 def load(path):
@@ -98,20 +98,26 @@ def verify(directory, *, rescore=False):
     version = original.get("scoring_version", UPSTREAM_SCORER)
     replay, evidence = replay_episode(directory, version)
     verification = compare(original, replay, evidence)
-    if not rescore or version == TABLETOP_SCORER:
+    if not rescore or version == FINAL_CAPTURE_SCORER:
         write_json(directory / "verification.json", verification)
         return verification
     if not verification["verified"]:
         raise ValueError("Original grade failed independent replay. No rescore was saved.")
 
-    # Replay the same commands with only the terminal scoring rule changed.
-    revised, evidence = replay_episode(directory, TABLETOP_SCORER)
-    grade_path = directory / "private" / "grading-v2.json"
-    verification_path = directory / "verification-v2.json"
+    # Keep any previously published tabletop-v2 result reproducible too.
+    prior = directory / "private" / "grading-v2.json"
+    if prior.exists():
+        older, older_evidence = replay_episode(directory, TABLETOP_SCORER)
+        if not compare(load(prior), older, older_evidence)["verified"]:
+            raise ValueError("The archived tabletop-v2 result failed independent replay.")
+
+    revised, evidence = replay_episode(directory, FINAL_CAPTURE_SCORER)
+    grade_path = directory / "private" / "grading-v3.json"
+    verification_path = directory / "verification-v3.json"
     same_fields = all(revised[key] == value for key, value in original.items()
                       if key not in {"score", "success", "metrics", "stable_terminal_window", "scoring_version"})
     same_counts = all(revised["metrics"][key] == value
-                      for key, value in original["metrics"].items() if key != "beads_stable")
+                      for key, value in original["metrics"].items() if key not in {"beads_stable", "beads_spilled"})
     same_actions = (evidence["controller_feedback_match"]
                     and evidence["rejected_decisions"] == verification["rejected_decisions"])
     if not (same_fields and same_counts and same_actions):
@@ -120,8 +126,8 @@ def verify(directory, *, rescore=False):
         raise ValueError("Rescored replay differs from the existing revised grade.")
     verification = {
         "verified": True, "method": "fresh replays with original and revised pouring scorers",
-        "scoring_version": TABLETOP_SCORER, "original_scoring_version": version,
-        "original_score": original["score"], "replay_score": revised["score"],
+        "scoring_version": FINAL_CAPTURE_SCORER, "original_scoring_version": version,
+        "replay_score": revised["score"],
         "decision_count": evidence["decision_count"], "rejected_decisions": evidence["rejected_decisions"],
         "original_replay_verified": True, "end_state_match": True, "max_qpos_difference": 0.0,
         "unchanged_grading_inputs_match": True, "controller_feedback_match": True,
@@ -135,7 +141,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_directory", type=Path)
     parser.add_argument("--rescore", action="store_true",
-                        help="Write a verified tabletop-v2 sidecar for an upstream episode.")
+                        help="Verify the recorded grade and write a separate final-capture-v3 grade for legacy runs.")
     args = parser.parse_args()
     result = verify(args.run_directory, rescore=args.rescore)
     print(json.dumps(result))

@@ -1,7 +1,8 @@
 """Operator's read-only feed for an independently running Codex episode."""
-import json
 import re
 from pathlib import Path
+
+from public_grading import public_status
 
 RUNS = Path(__file__).resolve().parent / "codex-runs"
 CURRENT = RUNS / "current"
@@ -15,11 +16,7 @@ def empty():
 
 
 def snapshot():
-    try:
-        result = json.loads((CURRENT / "status.json").read_text())
-    except FileNotFoundError:
-        return empty()
-    return result
+    return public_status(CURRENT.resolve()) or empty()
 
 
 def frame(camera, seq, run_id=None):

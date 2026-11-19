@@ -14,6 +14,7 @@ import tempfile
 from PIL import Image, ImageDraw, ImageFont
 
 from arm_config import ARM_LABELS
+from public_grading import public_status
 
 HERE = Path(__file__).resolve().parent
 CAMERAS = ("front", "overhead", "left", "wrist")
@@ -132,7 +133,7 @@ def verify(movie, num_frames):
 
 def export(root, *, partial=False, destination=None):
     root = Path(root).resolve()
-    state = json.loads((root / "status.json").read_text())
+    state = public_status(root)
     if not partial and state["phase"] not in ("exporting", "finished", "error"):
         raise ValueError("The episode is still recording.")
     movie = Path(destination).resolve() if destination else root / "replay.mp4"

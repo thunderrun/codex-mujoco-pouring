@@ -2,10 +2,10 @@
 from pathlib import Path
 
 from arm_config import DEFAULT_SKILL, checked_skill
-from pouring_score import TABLETOP_SCORER, pouring_task
+from pouring_score import FINAL_CAPTURE_SCORER, PouringSimulation, pouring_task
 
 
-def load_pouring_arm(arm, seed, *, scoring_version=TABLETOP_SCORER, skill_version=None):
+def load_pouring_arm(arm, seed, *, scoring_version=FINAL_CAPTURE_SCORER, skill_version=None):
     if arm not in DEFAULT_SKILL:
         raise ValueError(f"Unknown pouring arm: {arm!r}")
     version = checked_skill(arm, DEFAULT_SKILL[arm] if skill_version is None else skill_version)
@@ -22,6 +22,5 @@ def load_pouring_arm(arm, seed, *, scoring_version=TABLETOP_SCORER, skill_versio
         return create_so101_pouring(seed, task=task), PourControls, guide
 
     from pour_controls import GUIDE, PourControls
-    from robo_mj_bench.task_simulation import TaskSimulation
 
-    return TaskSimulation(task, seed), PourControls, GUIDE
+    return PouringSimulation(task, seed), PourControls, GUIDE
